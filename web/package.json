@@ -1,9 +1,10 @@
 {
-  "name": "web",
+  "name": "pandahome",
   "version": "0.1.0",
   "private": true,
+  "description": "A lazy developer's solution for home server management",
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

@@ -7,8 +7,12 @@ import { LanguageProvider } from "@/components/providers/language-provider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Self Host Server",
-  description: "Self Host Server Dashboard",
+  title: {
+    template: "%s | PandaHome",
+    default: "PandaHome - 懒人开发者的家庭服务器",
+  },
+  description: "一个懒人开发者的家庭服务器管理解决方案，集成了阿里云 DNS API 动态 DDNS 和 UPnP 自动端口映射功能。",
+
 };
 
 async function getInitialMessages() {
