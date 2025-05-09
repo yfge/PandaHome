@@ -1,0 +1,32 @@
+{
+  "common": {
+    "home": "Home",
+    "status": "Status",
+    "upnp": "Port Mappings",
+    "welcome": "Welcome to Server Management System",
+    "description": "A system for monitoring and managing servers",
+    "viewStatus": "View Server Status"
+  },
+  "server": {
+    "status": "Server Status",
+    "cpuUsage": "CPU Usage: {usage}%",
+    "cores": "CPU Cores",
+    "memory": "Memory",
+    "memoryUsage": "Used: {used} / Total: {total}",
+    "disk": "Disk",
+    "diskUsage": "Used: {used} / Total: {total}",
+    "free": "Free",
+    "services": "Services",
+    "serviceStatus": "Service Status"
+  },
+  "upnp": {
+    "title": "UPnP Port Mappings",
+    "error": "Error",
+    "retry": "Retry",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "mappingDescription": "{protocol} Protocol: {internal} -> {external}"
+  }
+} 

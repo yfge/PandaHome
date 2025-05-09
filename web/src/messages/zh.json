@@ -1,0 +1,32 @@
+{
+  "common": {
+    "home": "首页",
+    "status": "状态",
+    "upnp": "端口映射",
+    "welcome": "欢迎使用服务器管理系统",
+    "description": "这是一个用于监控和管理服务器的系统",
+    "viewStatus": "查看服务器状态"
+  },
+  "server": {
+    "status": "服务器状态",
+    "cpuUsage": "CPU 使用率: {usage}%",
+    "cores": "CPU 核心数",
+    "memory": "内存",
+    "memoryUsage": "已用: {used} / 总计: {total}",
+    "disk": "磁盘",
+    "diskUsage": "已用: {used} / 总计: {total}",
+    "free": "可用",
+    "services": "服务",
+    "serviceStatus": "服务状态"
+  },
+  "upnp": {
+    "title": "UPnP 端口映射",
+    "error": "错误",
+    "retry": "重试",
+    "enabled": "已启用",
+    "disabled": "已禁用",
+    "createdAt": "创建时间",
+    "updatedAt": "更新时间",
+    "mappingDescription": "{protocol} 协议: {internal} -> {external}"
+  }
+} 
