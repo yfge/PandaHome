@@ -4,7 +4,6 @@ import netifaces
 import time
 import os
 import aiohttp
-from async_upnp_client.client import UpnpDevice
 from async_upnp_client.client_factory import UpnpFactory
 from async_upnp_client.aiohttp import AiohttpSessionRequester
 from async_upnp_client.search import async_search
@@ -50,7 +49,7 @@ class UPNPService:
             gateways = netifaces.gateways()
             default_gateway = None
             default_interface = None
-            
+
             # 尝试从不同位置获取默认网关
             if 'default' in gateways and netifaces.AF_INET in gateways['default']:
                 default_gateway = gateways['default'][netifaces.AF_INET][0]
@@ -62,14 +61,14 @@ class UPNPService:
                         default_gateway = gateway_info[0]
                         default_interface = gateway_info[1]
                         break
-            
+
             if default_gateway is None:
                 logger.error("无法获取默认网关")
                 raise Exception("无法获取默认网关")
-                
+
             logger.info(f"默认网关: {default_gateway}")
             logger.info(f"默认接口: {default_interface}")
-            
+
             # 记录网络接口信息
             logger.info("正在检查网络接口...")
             interfaces = netifaces.interfaces()
@@ -78,7 +77,7 @@ class UPNPService:
                 if netifaces.AF_INET in addrs:
                     for addr in addrs[netifaces.AF_INET]:
                         logger.info(f"接口 {iface}: IP={addr.get('addr')}")
-            
+
             # 设置网络接口
             if default_interface:
                 # 获取接口的IP地址
@@ -92,7 +91,7 @@ class UPNPService:
                     logger.warning(f"接口 {default_interface} 没有IPv4地址，使用默认设置")
             else:
                 logger.warning("未找到默认接口，使用默认设置")
-            
+
             # 初始化UPnP
             logger.info("正在初始化UPnP...")
             # 创建aiohttp会话
@@ -101,20 +100,20 @@ class UPNPService:
             requester = AiohttpSessionRequester(self.session)
             self.upnp = UpnpFactory(requester)
             self.upnp_factory = UpnpFactory(self.session)
-            
+
             # 保存网关信息
             self.gateway_info = {
                 "ip": default_gateway,
                 "interface": default_interface,
                 "local_ip": self.interface_ip
             }
-            
+
             # 尝试发现设备
             logger.info(f"正在发现UPnP设备（网关: {default_gateway}）...")
             try:
                 # 尝试多次发现设备
                 max_retries = 5  # 增加重试次数
-                
+
                 async def device_discovered(device_info):
                     """设备发现回调函数"""
                     logger.info(f"发现设备: {device_info}")
@@ -124,7 +123,7 @@ class UPNPService:
                             return
                     # 添加到设备列表
                     self.devices.append(device_info)
-                
+
                 for i in range(max_retries):
                     try:
                         logger.info(f"尝试发现设备 ({i+1}/{max_retries})...")
@@ -136,7 +135,7 @@ class UPNPService:
                             search_target="urn:schemas-upnp-org:device:InternetGatewayDevice:1"  # 只搜索IGD设备
                         )
                         logger.info(f"发现 {len(self.devices)} 个设备")
-                        
+
                         if self.devices:
                             # 获取发现的设备信息
                             logger.info("正在获取设备信息...")
@@ -144,7 +143,7 @@ class UPNPService:
                                 logger.info(f"设备信息: {device_info}")
                             break
                         elif i < max_retries - 1:
-                            logger.warning(f"未发现设备，等待后重试...")
+                            logger.warning("未发现设备，等待后重试...")
                             await asyncio.sleep(5)  # 增加等待时间到5秒
                             continue
                     except Exception as e:
@@ -154,7 +153,7 @@ class UPNPService:
                             continue
                         else:
                             raise
-                
+
                 # 检查设备发现结果
                 if not self.devices:
                     logger.error("未发现UPnP设备，请检查：")
@@ -163,16 +162,16 @@ class UPNPService:
                     logger.error("3. 防火墙是否允许UPnP通信（UDP 1900端口）")
                     logger.error(f"4. 当前网关 {default_gateway} 是否支持UPnP")
                     raise Exception("未发现UPnP设备")
-                
+
                 logger.info("UPnP服务初始化成功")
                 self.initialized = True
-                
+
                 # 更新状态缓存
                 self._update_status_cache()
-                
+
                 # 初始化端口映射缓存
                 await self._update_mappings_cache()
-                
+
             except Exception as e:
                 logger.error(f"UPnP服务初始化失败: {str(e)}")
                 raise Exception(f"UPnP服务初始化失败: {str(e)}")
@@ -231,9 +230,9 @@ class UPNPService:
     def get_status(self):
         """获取UPnP服务状态（带缓存）"""
         current_time = time.time()
-        
+
         # 检查缓存是否有效
-        if (self._status_cache is not None and 
+        if (self._status_cache is not None and
             current_time - self._last_status_update < self._status_cache_ttl):
             return self._status_cache
 
@@ -267,7 +266,7 @@ class UPNPService:
             s.bind(('', port))
             s.close()
             return True
-        except:
+        except OSError:
             return False
 
     def validate_port_mapping(self, external_port: int, protocol: str = 'TCP') -> bool:
@@ -280,48 +279,48 @@ class UPNPService:
         """递归查找WANIPConnection服务"""
         if not device:
             return None
-            
+
         # 检查当前设备的服务
         for service in device.services.values():
             if service.service_type == "urn:schemas-upnp-org:service:WANIPConnection:1":
                 return service
-                
+
         # 检查嵌入式设备
         if hasattr(device, 'embedded_devices'):
             for embedded_device in device.embedded_devices.values():
                 logger.info(f"检查嵌入式设备: {embedded_device.device_type}")
                 logger.info(f"嵌入式设备服务: {[s.service_type for s in embedded_device.services.values()]}")
-                
+
                 # 递归检查嵌入式设备
                 service = self.find_wan_ip_service(embedded_device)
                 if service:
                     return service
-                    
+
         return None
-                
+
     async def _update_mappings_cache(self):
         """更新端口映射缓存"""
         try:
             mappings = []
-            
+
             # 获取网关设备
             if not self.gateway_info or not self.gateway_info.get('ip'):
                 logger.error("未找到网关信息")
                 return None
-                
+
             gateway_ip = self.gateway_info['ip']
             logger.info(f"正在从网关 {gateway_ip} 获取端口映射...")
-            
+
             # 遍历所有发现的设备
             for device_info in self.devices:
                 device_url = device_info.get('LOCATION', '')
                 if not device_url:
                     continue
-                    
+
                 # 检查是否是网关设备
                 if gateway_ip not in device_url:
                     continue
-                    
+
                 try:
                     logger.info(f"正在创建设备对象: {device_url}")
                     # 创建设备对象
@@ -329,27 +328,27 @@ class UPNPService:
                     if not device:
                         logger.warning("创建设备对象失败")
                         continue
-                        
+
                     # 打印设备信息
                     logger.info(f"设备类型: {device.device_type}")
                     logger.info(f"设备服务: {[s.service_type for s in device.services.values()]}")
-                    
+
                     # 递归查找WANIPConnection服务
                     wan_ip_service = self.find_wan_ip_service(device)
                     if not wan_ip_service:
                         logger.warning("未找到WANIPConnection服务")
                         continue
-                    
+
                     try:
                         # 获取连接状态
                         status_result = await wan_ip_service.async_call_action('GetStatusInfo')
                         logger.info(f"连接状态: {status_result}")
-                        
+
                         # 获取外部IP地址
                         external_ip_result = await wan_ip_service.async_call_action('GetExternalIPAddress')
                         external_ip = external_ip_result.get('NewExternalIPAddress')
                         logger.info(f"外部IP地址: {external_ip}")
-                        
+
                         # 获取端口映射列表
                         index = 0
                         while True:
@@ -359,7 +358,7 @@ class UPNPService:
                                     'GetGenericPortMappingEntry',
                                     NewPortMappingIndex=index
                                 )
-                                
+
                                 # 解析端口映射信息
                                 mapping = {
                                     "external_port": result.get('NewExternalPort'),
@@ -384,7 +383,7 @@ class UPNPService:
                     except Exception as e:
                         logger.warning(f"获取端口映射失败: {str(e)}")
                         continue
-                    
+
                 except Exception as e:
                     logger.warning(f"处理网关设备失败: {str(e)}")
                     continue
@@ -412,7 +411,7 @@ class UPNPService:
 
         # 检查缓存是否有效
         current_time = time.time()
-        if (self._mappings_cache is not None and 
+        if (self._mappings_cache is not None and
             current_time - self._last_mappings_update < self._mappings_cache_ttl):
             return self._mappings_cache
 
@@ -427,36 +426,36 @@ class UPNPService:
             if not self.gateway_info or not self.gateway_info.get('ip'):
                 logger.error("未找到网关信息")
                 return {"status": "error", "message": "未找到网关信息"}
-            
+
             gateway_ip = self.gateway_info['ip']
             logger.info(f"正在从网关 {gateway_ip} 添加端口映射...")
-            
+
             # 遍历所有发现的设备
             for device_info in self.devices:
                 device_url = device_info.get('LOCATION', '')
                 if not device_url:
                     continue
-                
+
                 # 检查是否是网关设备
                 if gateway_ip not in device_url:
                     continue
-                
+
                 try:
                     # 创建设备对象
                     device = await self.upnp.async_create_device(device_url)
                     if not device:
                         logger.warning("创建设备对象失败")
                         continue
-                        
+
                     # 递归查找WANIPConnection服务
                     wan_ip_service = self.find_wan_ip_service(device)
                     if not wan_ip_service:
                         logger.warning("未找到WANIPConnection服务")
                         continue
-                    
+
                     try:
                         logger.info(f"正在添加端口映射: {external_port} -> {local_ip}:{internal_port} ({protocol})")
-                          
+
                         # 打印所有参数
                         params = {
                             'NewRemoteHost': "",
@@ -469,7 +468,7 @@ class UPNPService:
                             'NewLeaseDuration': lease_duration
                         }
                         logger.info(f"准备调用AddPortMapping，参数: {params}")
-                    
+
                         result = await wan_ip_service.async_call_action(
                             'AddPortMapping',
                             NewRemoteHost="",
@@ -481,30 +480,30 @@ class UPNPService:
                             NewPortMappingDescription=description,
                             NewLeaseDuration=lease_duration
                         )
-                        
+
                         logger.info(f"端口映射添加成功: {result}")
                         return {
                             "status": "success",
                             "message": "端口映射添加成功",
                             "result": result
                         }
-                        
+
                     except Exception as e:
                         logger.warning(f"添加端口映射失败: {str(e)}")
                         return {
                             "status": "error",
                             "message": f"添加端口映射失败: {str(e)}"
                         }
-                    
+
                 except Exception as e:
                     logger.warning(f"处理网关设备失败: {str(e)}")
                     continue
-                
+
             return {
                 "status": "error",
                 "message": "未找到可用的网关设备"
             }
-            
+
         except Exception as e:
             logger.error(f"添加端口映射失败: {str(e)}")
             return {
@@ -521,45 +520,45 @@ class UPNPService:
             if not self.gateway_info or not self.gateway_info.get('ip'):
                 logger.error("未找到网关信息")
                 return {"status": "error", "message": "未找到网关信息"}
-            
+
             gateway_ip = self.gateway_info['ip']
             logger.info(f"正在从网关 {gateway_ip} 删除端口映射...")
-            
+
             # 遍历所有发现的设备
             for device_info in self.devices:
                 device_url = device_info.get('LOCATION', '')
                 if not device_url:
                     continue
-                
+
                 # 检查是否是网关设备
                 if gateway_ip not in device_url:
                     continue
-                
+
                 try:
                     # 创建设备对象
                     device = await self.upnp.async_create_device(device_url)
                     if not device:
                         logger.warning("创建设备对象失败")
                         continue
-                        
+
                     # 递归查找WANIPConnection服务
                     wan_ip_service = self.find_wan_ip_service(device)
                     if not wan_ip_service:
                         logger.warning("未找到WANIPConnection服务")
                         continue
-                    
+
                     try:
                         # 打印服务信息
                         logger.info(f"WANIPConnection服务信息: {wan_ip_service}")
                         logger.info(f"服务类型: {wan_ip_service.service_type}")
                         logger.info(f"服务ID: {wan_ip_service.service_id}")
-                        
+
                         # 打印动作信息
                         delete_port_mapping_action = wan_ip_service.action('DeletePortMapping')
                         if delete_port_mapping_action:
                             logger.info(f"DeletePortMapping动作信息: {delete_port_mapping_action}")
                             logger.info(f"动作参数: {delete_port_mapping_action.arguments}")
-                        
+
                         # 打印所有参数
                         params = {
                             'NewRemoteHost': "",
@@ -567,17 +566,17 @@ class UPNPService:
                             'NewProtocol': protocol.upper()
                         }
                         logger.info(f"准备调用DeletePortMapping，参数: {params}")
-                        
+
                         result = await wan_ip_service.async_call_action(
                             'DeletePortMapping',
                             **params
                         )
-                        
+
                         logger.info(f"端口映射删除成功: {result}")
-                        
+
                         # 清除缓存
                         self._mappings_cache = None
-                        
+
                         return {
                             "status": "success",
                             "message": "端口映射删除成功",
@@ -586,7 +585,7 @@ class UPNPService:
                                 "protocol": protocol
                             }
                         }
-                        
+
                     except Exception as e:
                         logger.warning(f"删除端口映射失败: {str(e)}")
                         # 打印更详细的错误信息
@@ -598,19 +597,19 @@ class UPNPService:
                             "status": "error",
                             "message": f"删除端口映射失败: {str(e)}"
                         }
-                        
+
                 except Exception as e:
                     logger.warning(f"处理网关设备失败: {str(e)}")
                     continue
-                
+
             return {
                 "status": "error",
                 "message": "未找到可用的网关设备"
             }
-            
+
         except Exception as e:
             logger.error(f"删除端口映射失败: {str(e)}")
             return {
                 "status": "error",
                 "message": f"删除端口映射失败: {str(e)}"
-            } 
+            }

@@ -11,8 +11,8 @@
 
 ## 技术栈
 
-- **前端**：Next.js 14、TypeScript、Tailwind CSS、Shadcn UI、next-intl
-- **后端**：FastAPI（Python 3.8+）、UPnP 库、阿里云 DNS API
+- **前端**：Next.js 15（App Router）、TypeScript、Tailwind CSS 4、shadcn/ui、next-intl
+- **后端**：FastAPI（Python 3.12+）、SQLAlchemy、miniupnpc、阿里云 DNS SDK
 
 ## 快速开始
 
@@ -28,7 +28,7 @@ cd PandaHome
 ```bash
 # 后端
 cd api
-pip install -r requirements.txt
+pip install -e .
 
 # 前端
 cd web
@@ -47,12 +47,20 @@ ALIYUN_REGION_ID=cn-hangzhou
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 
-### 4. 运行应用
+### 4. 安装开发工具
+
+```bash
+# 在仓库根目录
+pip install pre-commit
+pre-commit install --install-hooks
+```
+
+### 5. 运行应用
 
 ```bash
 # 后端
 cd api
-uvicorn main:app --reload
+uvicorn src.app.main:app --reload --app-dir src
 
 # 前端
 cd web
@@ -61,6 +69,12 @@ npm run dev
 
 - Web 界面：http://localhost:3000
 - API 文档：http://localhost:8000/docs
+
+## 开发流程
+
+- 每次由智能体或双人编程产生代码改动时，必须在 `agent_chats/YYYYMMDD-HHMMSS-topic.md` 中记录，模板见 `agent_chats/README.md`。
+- 在提交 PR 前运行 `pre-commit run --all-files`，钩子会自动执行 Ruff 检查/格式化（`api/`）以及安装了依赖后的 `npm run lint`（前端）。
+- 完整的工程手册请参考仓库根目录下的 `agents.md`。
 
 ## API 接口
 
@@ -79,4 +93,4 @@ npm run dev
 
 ## 许可证
 
-MIT 
+MIT

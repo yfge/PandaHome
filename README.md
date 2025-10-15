@@ -11,8 +11,8 @@ A lazy developer's solution for home server management, featuring dynamic DDNS (
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS, Shadcn UI, next-intl
-- **Backend**: FastAPI (Python 3.8+), UPnP library, Aliyun DNS API
+- **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS 4, shadcn/ui, next-intl
+- **Backend**: FastAPI (Python 3.12+), SQLAlchemy, miniupnpc, Aliyun DNS SDK
 
 ## Quick Start
 
@@ -28,7 +28,7 @@ cd PandaHome
 ```bash
 # Backend
 cd api
-pip install -r requirements.txt
+pip install -e .
 
 # Frontend
 cd web
@@ -47,12 +47,20 @@ ALIYUN_REGION_ID=cn-hangzhou
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 
-### 4. Run the application
+### 4. Install developer tooling
+
+```bash
+# From repository root
+pip install pre-commit
+pre-commit install --install-hooks
+```
+
+### 5. Run the application
 
 ```bash
 # Backend
 cd api
-uvicorn main:app --reload
+uvicorn src.app.main:app --reload --app-dir src
 
 # Frontend
 cd web
@@ -61,6 +69,12 @@ npm run dev
 
 - Web UI: http://localhost:3000
 - API Docs: http://localhost:8000/docs
+
+## Development Workflow
+
+- Log every code-producing session in `agent_chats/YYYYMMDD-HHMMSS-topic.md` following the template described in `agent_chats/README.md`.
+- Run `pre-commit run --all-files` before opening a PR; hooks enforce Ruff lint/format on `api/` and `npm run lint` for the frontend (when dependencies are installed).
+- See `agents.md` for the full engineering handbook covering repository layout, conventions, and incident process.
 
 ## API Endpoints
 
@@ -79,4 +93,4 @@ npm run dev
 
 ## License
 
-MIT 
+MIT

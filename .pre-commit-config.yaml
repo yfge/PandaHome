@@ -1,0 +1,42 @@
+minimum_pre_commit_version: "3.6.0"
+
+default_language_version:
+  python: python3
+
+ci:
+  autofix_prs: false
+  autofix_commit_msg: "chore(pre-commit): auto fixes"
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-merge-conflict
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: check-yaml
+      - id: check-json
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.8
+    hooks:
+      - id: ruff
+        name: ruff (api)
+        args: ["--fix"]
+        files: ^api/
+
+  - repo: local
+    hooks:
+      - id: ensure-agent-chat-entry
+        name: Ensure agent_chats log accompanies code changes
+        entry: scripts/ensure_agent_chat.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: web-lint
+        name: Web lint (Next.js)
+        entry: scripts/run_web_lint.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
