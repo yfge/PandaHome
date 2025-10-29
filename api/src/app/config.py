@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     # Auth settings
     AUTH_HASHING_SCHEMES: List[str] = Field(default_factory=lambda: ["bcrypt"])
     AUTH_HASHING_DEPRECATED: str = Field(default="auto")
-    AUTH_TOKEN_URL: str = Field(default="token")
+    AUTH_TOKEN_URL: str = Field(default="/api/auth/token")
 
 
 settings = Settings()

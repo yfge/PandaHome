@@ -1,14 +1,11 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
-from .routers import domains, upnp,users
+
+from .routers import auth, domains, upnp, users
 from .models.response import Response
 from .services.upnp import UPNPService
-from .database.database import get_db, engine
-from .models.db_models import Base, User
-from .auth.auth import create_access_token, verify_password
-from datetime import timedelta
+from .database.database import engine
+from .models.db_models import Base
 
 # 创建数据库表
 Base.metadata.create_all(bind=engine)
@@ -31,6 +28,7 @@ app.add_middleware(
 # 创建服务实例
 upnp_service = UPNPService()
 # 注册路由
+app.include_router(auth.router)
 app.include_router(domains.router)
 app.include_router(upnp.router)
 app.include_router(users.router)

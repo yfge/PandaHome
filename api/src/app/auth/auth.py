@@ -72,3 +72,17 @@ def check_permission(user: User, required_role: UserRole) -> bool:
         UserRole.GUEST: 1,
     }
     return role_hierarchy[user.role] >= role_hierarchy[required_role]
+
+
+def require_role(required_role: UserRole):
+    """返回一个依赖项，确保当前用户拥有指定角色。"""
+
+    async def dependency(current_user: User = Depends(get_current_user)) -> User:
+        if not check_permission(current_user, required_role):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="权限不足",
+            )
+        return current_user
+
+    return dependency

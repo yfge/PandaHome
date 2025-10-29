@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import List
+from typing import List, Sequence
 
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
@@ -19,12 +19,20 @@ class AuthSettings(BaseModel):
 
 @lru_cache
 def get_auth_settings() -> AuthSettings:
+    hashing_schemes: Sequence[str]
+    if isinstance(settings.AUTH_HASHING_SCHEMES, (list, tuple)):
+        hashing_schemes = settings.AUTH_HASHING_SCHEMES
+    else:
+        hashing_schemes = [scheme.strip() for scheme in str(settings.AUTH_HASHING_SCHEMES).split(",") if scheme.strip()]
+        if not hashing_schemes:
+            hashing_schemes = ["bcrypt"]
+
     return AuthSettings(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
         access_token_expire_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
         token_url=settings.AUTH_TOKEN_URL,
-        hashing_schemes=list(settings.AUTH_HASHING_SCHEMES),
+        hashing_schemes=list(hashing_schemes),
         hashing_deprecated=settings.AUTH_HASHING_DEPRECATED,
     )
 

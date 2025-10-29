@@ -81,7 +81,7 @@ Backend (`api/.env`):
 | `SECRET_KEY` | JWT signing key; replace in production. | `change-me` |
 | `JWT_ALGORITHM` | JWT signing algorithm. | `HS256` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime in minutes. | `30` |
-| `AUTH_TOKEN_URL` | OAuth2 token endpoint path. | `token` |
+| `AUTH_TOKEN_URL` | OAuth2 token endpoint path. | `/api/auth/token` |
 | `AUTH_HASHING_SCHEMES` | Comma-separated Passlib hashing schemes. | `bcrypt` |
 | `AUTH_HASHING_DEPRECATED` | Passlib deprecated hashing strategy. | `auto` |
 | `ALIYUN_ACCESS_KEY_ID` | Aliyun access key ID. | _(required)_ |
