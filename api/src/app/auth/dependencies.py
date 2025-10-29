@@ -1,6 +1,7 @@
 from functools import lru_cache
 from typing import List, Sequence
 
+from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from pydantic import BaseModel
@@ -23,7 +24,11 @@ def get_auth_settings() -> AuthSettings:
     if isinstance(settings.AUTH_HASHING_SCHEMES, (list, tuple)):
         hashing_schemes = settings.AUTH_HASHING_SCHEMES
     else:
-        hashing_schemes = [scheme.strip() for scheme in str(settings.AUTH_HASHING_SCHEMES).split(",") if scheme.strip()]
+        hashing_schemes = [
+            scheme.strip()
+            for scheme in str(settings.AUTH_HASHING_SCHEMES).split(",")
+            if scheme.strip()
+        ]
         if not hashing_schemes:
             hashing_schemes = ["bcrypt"]
 
@@ -52,6 +57,9 @@ def _build_oauth2_scheme(token_url: str) -> OAuth2PasswordBearer:
     return OAuth2PasswordBearer(tokenUrl=token_url)
 
 
-def oauth2_scheme() -> OAuth2PasswordBearer:
-    auth_settings = get_auth_settings()
-    return _build_oauth2_scheme(auth_settings.token_url)
+async def oauth2_scheme(
+    request: Request,
+    auth_settings: AuthSettings = Depends(get_auth_settings),
+) -> str:
+    scheme = _build_oauth2_scheme(auth_settings.token_url)
+    return await scheme(request)

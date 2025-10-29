@@ -27,10 +27,10 @@ class UserUpdate(BaseModel):
 class UserInDB(UserBase):
     id: int
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
     hashed_password: str
 
 class User(UserBase):
     id: int
     created_at: datetime
-    updated_at: datetime 
+    updated_at: Optional[datetime] = None
