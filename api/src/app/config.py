@@ -1,20 +1,34 @@
-from pydantic_settings import BaseSettings
+from pathlib import Path
 from typing import Optional
 
-class Settings(BaseSettings):
-    # 数据库配置
-    DATABASE_URL: str = "sqlite:///./app.db"
-    
-    # JWT配置
-    SECRET_KEY: str = "your-secret-key"  # 在生产环境中应该使用环境变量
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    
-    # 阿里云DNS配置
-    ALIYUN_ACCESS_KEY_ID: Optional[str] = None
-    ALIYUN_ACCESS_KEY_SECRET: Optional[str] = None
-    
-    class Config:
-        env_file = ".env"
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-settings = Settings() 
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+
+
+class Settings(BaseSettings):
+    """Global application settings loaded from environment variables or `.env`."""
+
+    model_config = SettingsConfigDict(
+        env_file=str(BASE_DIR / ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    # 数据库配置
+    DATABASE_URL: str = Field(default="sqlite:///./app.db")
+
+    # JWT配置
+    SECRET_KEY: str = Field(default="change-me")
+    ALGORITHM: str = Field(default="HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30)
+
+    # 阿里云DNS配置
+    ALIYUN_ACCESS_KEY_ID: Optional[str] = Field(default=None)
+    ALIYUN_ACCESS_KEY_SECRET: Optional[str] = Field(default=None)
+    ALIYUN_REGION_ID: str = Field(default="cn-hangzhou")
+
+
+settings = Settings()

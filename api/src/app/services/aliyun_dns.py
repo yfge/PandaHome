@@ -13,7 +13,7 @@ class AliyunDNSService:
         self.client = AcsClient(
             settings.ALIYUN_ACCESS_KEY_ID,
             settings.ALIYUN_ACCESS_KEY_SECRET,
-            'cn-hangzhou'
+            settings.ALIYUN_REGION_ID,
         )
 
     def get_domains_list(self):

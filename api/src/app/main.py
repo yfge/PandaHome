@@ -7,7 +7,7 @@ from .models.response import Response
 from .services.upnp import UPNPService
 from .database.database import get_db, engine
 from .models.db_models import Base, User
-from .auth.auth import create_access_token, verify_password, ACCESS_TOKEN_EXPIRE_MINUTES
+from .auth.auth import create_access_token, verify_password
 from datetime import timedelta
 
 # 创建数据库表
