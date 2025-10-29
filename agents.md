@@ -56,6 +56,7 @@ Keep this structure tidy; prefer adding new domains under the existing patterns.
 - File naming: `YYYYMMDD-HHMMSS-topic.md` using UTC. Use lowercase kebab-case topic labels.
 - Reference touched files (`api/src/...`, `web/src/...`) and include snippets when helpful.
 - Document the concrete work performed, list the files changed, and call out any blockers or decisions with brief reasoning.
+- Pre-commit hooks will reject commits if sections are empty or if `## Changes` does not name the files that were modified.
 - Capture test commands, even if skipped (write `Not run – reason`).
 - Store risks, blockers, TODOs under `## Next steps` for traceability.
 

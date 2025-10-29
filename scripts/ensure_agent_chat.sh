@@ -38,6 +38,43 @@ fi
 name_regex='^agent_chats/[0-9]{8}-[0-9]{6}-[a-z0-9-]+\.md$'
 missing_sections=0
 
+check_section_content() {
+  local path=$1
+  local heading=$2
+  local require_file_ref=${3:-false}
+  python - "$path" "$heading" "$require_file_ref" <<'PY'
+import re
+import sys
+
+path, heading, require_file = sys.argv[1], sys.argv[2], sys.argv[3] == "true"
+with open(path, encoding="utf-8") as fh:
+    lines = [line.rstrip("\n") for line in fh]
+
+try:
+    start = next(idx for idx, line in enumerate(lines) if line.strip() == heading)
+except StopIteration:
+    print(f"[agent_chats] {path} missing heading {heading}", file=sys.stderr)
+    sys.exit(1)
+
+end = len(lines)
+for idx in range(start + 1, len(lines)):
+    if lines[idx].startswith("## "):
+        end = idx
+        break
+
+content = [line for line in lines[start + 1:end] if line.strip()]
+if not content:
+    print(f"[agent_chats] {path} section '{heading}' must include details.", file=sys.stderr)
+    sys.exit(1)
+
+if require_file:
+    file_pattern = re.compile(r"\b[\w./-]+\.[A-Za-z0-9]+\b")
+    if not any(file_pattern.search(line) for line in content):
+        print(f"[agent_chats] {path} section '{heading}' must reference changed files.", file=sys.stderr)
+        sys.exit(1)
+PY
+}
+
 for file in $AGENT_LOGS; do
   if [[ ! $file =~ $name_regex ]]; then
     echo "[agent_chats] $file does not match required pattern YYYYMMDD-HHMMSS-topic.md" >&2
@@ -64,6 +101,12 @@ for file in $AGENT_LOGS; do
     echo "[agent_chats] $file missing '## Next steps' section" >&2
     missing_sections=1
   fi
+
+  check_section_content "$file" '## Summary'
+  check_section_content "$file" '## Changes' true
+  check_section_content "$file" '## Outcome'
+  check_section_content "$file" '## Verification'
+  check_section_content "$file" '## Next steps'
 
 done
 
