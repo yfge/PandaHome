@@ -1,13 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DomainRecord } from "@/types/domain";
 import { API_ENDPOINTS } from "@/config/api";
 import { Globe, Clock, Shield, Link as LinkIcon } from "lucide-react";
+import { DataStateCard } from "@/components/common/data-state-card";
+import { apiClient, getErrorMessage, isApiEnvelope, type ApiEnvelope } from "@/lib/api-client";
+import type { AsyncState } from "@/lib/async-state";
+
+interface DomainRecordsPayload {
+  DomainRecords?: {
+    Record?: DomainRecord[] | DomainRecord;
+  };
+}
+
+const extractRecords = (payload?: DomainRecordsPayload): DomainRecord[] => {
+  if (!payload || typeof payload !== "object") {
+    return [];
+  }
+
+  const records = payload.DomainRecords?.Record;
+  if (Array.isArray(records)) {
+    return records;
+  }
+
+  if (records && typeof records === "object") {
+    return [records as DomainRecord];
+  }
+
+  return [];
+};
 
 interface RecordListProps {
   domainName: string;
@@ -15,72 +40,98 @@ interface RecordListProps {
 
 const RecordList = ({ domainName }: RecordListProps) => {
   const t = useTranslations("domain");
-  const [records, setRecords] = useState<DomainRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  const fetchRecords = async () => {
-    try {
-      const response = await fetch(`${API_ENDPOINTS.domains}/${domainName}/records`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch records");
-      }
-      const result = await response.json();
-      if (result.code === 0) {
-        const records = result.data?.DomainRecords?.Record || [];
-        setRecords(Array.isArray(records) ? records : []);
-        setError(null);
-      } else {
-        throw new Error(result.message || "Failed to fetch records");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch records");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [state, setState] = useState<AsyncState<DomainRecord[]>>({ status: "loading" });
+  const isUnmountedRef = useRef(false);
 
   useEffect(() => {
-    setMounted(true);
-    fetchRecords();
-    const interval = setInterval(fetchRecords, 30000);
+    isUnmountedRef.current = false;
+    return () => {
+      isUnmountedRef.current = true;
+    };
+  }, []);
+
+  const setSafeState = useCallback(
+    (value: AsyncState<DomainRecord[]>) => {
+      if (!isUnmountedRef.current) {
+        setState(value);
+      }
+    },
+    []
+  );
+
+  const loadRecords = useCallback(
+    async (forceLoading = false) => {
+      if (forceLoading) {
+        setSafeState({ status: "loading" });
+      }
+
+      try {
+        const endpoint = `${API_ENDPOINTS.domains}/${domainName}/records`;
+        const response = await apiClient<DomainRecordsPayload | ApiEnvelope<DomainRecordsPayload>>(endpoint);
+
+        let records: DomainRecord[] = [];
+        if (isApiEnvelope<DomainRecordsPayload>(response)) {
+          if (response.code !== 0) {
+            throw new Error(response.message ?? t("failed"));
+          }
+          records = extractRecords(response.data);
+        } else {
+          records = extractRecords(response);
+        }
+
+        if (records.length === 0) {
+          setSafeState({ status: "empty" });
+          return;
+        }
+
+        setSafeState({ status: "success", data: records });
+      } catch (error) {
+        setSafeState({
+          status: "error",
+          message: getErrorMessage(error, t("failed")),
+        });
+      }
+    },
+    [domainName, setSafeState, t]
+  );
+
+  useEffect(() => {
+    loadRecords(true);
+    const interval = setInterval(() => {
+      loadRecords();
+    }, 30000);
+
     return () => clearInterval(interval);
-  }, [domainName]);
+  }, [loadRecords]);
 
-  if (!mounted) {
+  if (state.status === "loading") {
     return <RecordListSkeleton />;
   }
 
-  if (error) {
+  if (state.status === "error") {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center justify-center space-y-4">
-            <p className="text-red-500">{error}</p>
-            <Button onClick={fetchRecords}>{t("retry")}</Button>
-          </div>
-        </CardContent>
-      </Card>
+      <DataStateCard
+        variant="error"
+        title={t("error")}
+        description={state.message}
+        action={{
+          label: t("retry"),
+          onClick: () => loadRecords(true),
+        }}
+      />
     );
   }
 
-  if (loading) {
-    return <RecordListSkeleton />;
-  }
-
-  if (records.length === 0) {
+  if (state.status === "empty") {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center justify-center space-y-4">
-            <p className="text-muted-foreground">{t("noRecords")}</p>
-            <Button>{t("addRecord")}</Button>
-          </div>
-        </CardContent>
-      </Card>
+      <DataStateCard
+        title={t("noRecords")}
+        description={t("addRecord")}
+      />
     );
   }
+
+  const records = state.data;
 
   return (
     <Card>

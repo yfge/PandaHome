@@ -1,69 +1,113 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { API_ENDPOINTS } from "@/config/api";
 import { UpnpMapping } from "@/types/upnp";
 import { Network, Globe, Clock, Shield } from "lucide-react";
+import { DataStateCard } from "@/components/common/data-state-card";
+import { apiClient, getErrorMessage, isApiEnvelope, type ApiEnvelope } from "@/lib/api-client";
+import type { AsyncState } from "@/lib/async-state";
 
 export function UpnpMappingList() {
   const t = useTranslations("upnp");
-  const [mappings, setMappings] = useState<UpnpMapping[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  const fetchMappings = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(API_ENDPOINTS.upnpMappings);
-      if (!response.ok) {
-        throw new Error("Failed to fetch UPnP mappings");
-      }
-      const result = await response.json();
-      if (result.code === 0 && result.data?.mappings) {
-        setMappings(result.data.mappings);
-        setError(null);
-      } else {
-        throw new Error(result.message || "Failed to fetch UPnP mappings");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [state, setState] = useState<AsyncState<UpnpMapping[]>>({ status: "loading" });
+  const isUnmountedRef = useRef(false);
 
   useEffect(() => {
-    setMounted(true);
-    fetchMappings();
-    const interval = setInterval(fetchMappings, 30000);
-    return () => clearInterval(interval);
+    isUnmountedRef.current = false;
+    return () => {
+      isUnmountedRef.current = true;
+    };
   }, []);
 
-  if (!mounted) {
+  const setSafeState = useCallback(
+    (value: AsyncState<UpnpMapping[]>) => {
+      if (!isUnmountedRef.current) {
+        setState(value);
+      }
+    },
+    []
+  );
+
+  const loadMappings = useCallback(
+    async (forceLoading = false) => {
+      if (forceLoading) {
+        setSafeState({ status: "loading" });
+      }
+
+      try {
+        const response = await apiClient<{ mappings?: UpnpMapping[] } | ApiEnvelope<{ mappings?: UpnpMapping[] }>>(
+          API_ENDPOINTS.upnpMappings,
+        );
+
+        let mappings: UpnpMapping[] = [];
+        if (isApiEnvelope<{ mappings?: UpnpMapping[] }>(response)) {
+          if (response.code !== 0) {
+            throw new Error(response.message ?? t("failed"));
+          }
+          if (Array.isArray(response.data?.mappings)) {
+            mappings = response.data.mappings;
+          }
+        } else if (Array.isArray(response.mappings)) {
+          mappings = response.mappings;
+        }
+
+        if (mappings.length === 0) {
+          setSafeState({ status: "empty" });
+          return;
+        }
+
+        setSafeState({ status: "success", data: mappings });
+      } catch (error) {
+        setSafeState({
+          status: "error",
+          message: getErrorMessage(error, t("failed")),
+        });
+      }
+    },
+    [setSafeState, t]
+  );
+
+  useEffect(() => {
+    loadMappings(true);
+    const interval = setInterval(() => {
+      loadMappings();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [loadMappings]);
+
+  if (state.status === "loading") {
     return <MappingListSkeleton />;
   }
 
-  if (loading) {
-    return <MappingListSkeleton />;
-  }
-
-  if (error) {
+  if (state.status === "error") {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center justify-center space-y-4">
-            <p className="text-red-500">{error}</p>
-            <Button onClick={fetchMappings}>{t("retry")}</Button>
-          </div>
-        </CardContent>
-      </Card>
+      <DataStateCard
+        variant="error"
+        title={t("error")}
+        description={state.message}
+        action={{
+          label: t("retry"),
+          onClick: () => loadMappings(true),
+        }}
+      />
     );
   }
+
+  if (state.status === "empty") {
+    return (
+      <DataStateCard
+        title={t("noMappings")}
+        description={t("addMapping")}
+      />
+    );
+  }
+
+  const mappings = state.data;
 
   return (
     <Card>

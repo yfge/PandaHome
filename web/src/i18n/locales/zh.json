@@ -24,7 +24,10 @@
   "server": {
     "status": "服务器状态",
     "statusDescription": "查看当前服务器运行状态",
-    "viewDetails": "查看详情"
+    "viewDetails": "查看详情",
+    "error": "无法加载服务器状态",
+    "retry": "重试",
+    "empty": "暂无状态数据"
   },
   "services": {
     "management": "服务管理",
@@ -53,6 +56,7 @@
     "minutes": "分钟",
     "seconds": "秒",
     "description": "描述",
+    "noMappings": "暂无端口映射",
     "noDescription": "无描述",
     "addMapping": "添加映射",
     "deleteMapping": "删除映射",

@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { API_ENDPOINTS } from "@/config/api";
+import { DataStateCard } from "@/components/common/data-state-card";
+import { apiClient, getErrorMessage, isApiEnvelope, type ApiEnvelope } from "@/lib/api-client";
+import type { AsyncState } from "@/lib/async-state";
 
 interface ServerStatus {
   cpu: {
@@ -31,55 +33,96 @@ interface ServerStatus {
 
 export function ServerStatus() {
   const t = useTranslations();
-  const [status, setStatus] = useState<ServerStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchStatus = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(API_ENDPOINTS.status);
-      if (!response.ok) {
-        throw new Error("Failed to fetch server status");
-      }
-      const data = await response.json();
-      setStatus(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [state, setState] = useState<AsyncState<ServerStatus>>({ status: "loading" });
+  const isUnmountedRef = useRef(false);
 
   useEffect(() => {
-    fetchStatus();
-    // 每30秒更新一次状态
-    const interval = setInterval(fetchStatus, 30000);
-    return () => clearInterval(interval);
+    isUnmountedRef.current = false;
+    return () => {
+      isUnmountedRef.current = true;
+    };
   }, []);
 
-  if (loading) {
+  const setSafeState = useCallback(
+    (value: AsyncState<ServerStatus>) => {
+      if (!isUnmountedRef.current) {
+        setState(value);
+      }
+    },
+    []
+  );
+
+  const loadStatus = useCallback(
+    async (forceLoading = false) => {
+      if (forceLoading) {
+        setSafeState({ status: "loading" });
+      }
+
+      try {
+        const response = await apiClient<ServerStatus | ApiEnvelope<ServerStatus>>(API_ENDPOINTS.status);
+        let data: ServerStatus | undefined;
+
+        if (isApiEnvelope<ServerStatus>(response)) {
+          if (response.code !== 0) {
+            throw new Error(response.message ?? t("server.error"));
+          }
+          data = response.data ?? undefined;
+        } else {
+          data = response;
+        }
+
+        if (!data) {
+          setSafeState({ status: "empty" });
+          return;
+        }
+
+        setSafeState({ status: "success", data });
+      } catch (error) {
+        setSafeState({
+          status: "error",
+          message: getErrorMessage(error, t("server.error")),
+        });
+      }
+    },
+    [setSafeState, t]
+  );
+
+  useEffect(() => {
+    loadStatus(true);
+    const interval = setInterval(() => {
+      loadStatus();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [loadStatus]);
+
+  if (state.status === "loading") {
     return <StatusSkeleton />;
   }
 
-  if (error) {
+  if (state.status === "error") {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-red-500">Error</CardTitle>
-          <CardDescription>{error}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={fetchStatus}>Retry</Button>
-        </CardContent>
-      </Card>
+      <DataStateCard
+        variant="error"
+        title={t("server.error")}
+        description={state.message}
+        action={{
+          label: t("server.retry"),
+          onClick: () => loadStatus(true),
+        }}
+      />
     );
   }
 
-  if (!status) {
-    return null;
+  if (state.status === "empty") {
+    return (
+      <DataStateCard
+        title={t("server.empty")}
+        description={t("server.statusDescription")}
+      />
+    );
   }
+
+  const status = state.data;
 
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

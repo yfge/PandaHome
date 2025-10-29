@@ -17,7 +17,10 @@
   "server": {
     "status": "Server Status",
     "statusDescription": "View current server status",
-    "viewDetails": "View Details"
+    "viewDetails": "View Details",
+    "error": "Unable to load server status",
+    "retry": "Retry",
+    "empty": "No status data available"
   },
   "services": {
     "management": "Service Management",
@@ -46,6 +49,7 @@
     "minutes": "minutes",
     "seconds": "seconds",
     "description": "Description",
+    "noMappings": "No port mappings found",
     "noDescription": "No description",
     "addMapping": "Add Mapping",
     "deleteMapping": "Delete Mapping",

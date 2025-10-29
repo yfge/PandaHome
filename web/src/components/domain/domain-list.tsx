@@ -1,83 +1,113 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { API_ENDPOINTS } from "@/config/api";
 import { Domain } from "@/types/domain";
 import Link from "next/link";
 import { Globe, Shield, ExternalLink } from "lucide-react";
+import { DataStateCard } from "@/components/common/data-state-card";
+import { apiClient, getErrorMessage, isApiEnvelope, type ApiEnvelope } from "@/lib/api-client";
+import type { AsyncState } from "@/lib/async-state";
+import { Button } from "@/components/ui/button";
 
 export function DomainList() {
   const t = useTranslations("domain");
-  const [domains, setDomains] = useState<Domain[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  const fetchDomains = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(API_ENDPOINTS.domains);
-      if (!response.ok) {
-        throw new Error("Failed to fetch domains");
-      }
-      const result = await response.json();
-      if (result.code === 0 && result.data) {
-        setDomains(result.data);
-        setError(null);
-      } else {
-        throw new Error(result.message || "Failed to fetch domains");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [state, setState] = useState<AsyncState<Domain[]>>({ status: "loading" });
+  const isUnmountedRef = useRef(false);
 
   useEffect(() => {
-    setMounted(true);
-    fetchDomains();
-    const interval = setInterval(fetchDomains, 30000);
-    return () => clearInterval(interval);
+    isUnmountedRef.current = false;
+    return () => {
+      isUnmountedRef.current = true;
+    };
   }, []);
 
-  if (!mounted) {
+  const setSafeState = useCallback(
+    (value: AsyncState<Domain[]>) => {
+      if (!isUnmountedRef.current) {
+        setState(value);
+      }
+    },
+    []
+  );
+
+  const loadDomains = useCallback(
+    async (forceLoading = false) => {
+      if (forceLoading) {
+        setSafeState({ status: "loading" });
+      }
+
+      try {
+        const response = await apiClient<Domain[] | ApiEnvelope<Domain[]>>(API_ENDPOINTS.domains);
+        let data: Domain[] = [];
+
+        if (isApiEnvelope<Domain[]>(response)) {
+          if (response.code !== 0) {
+            throw new Error(response.message ?? t("failed"));
+          }
+          if (Array.isArray(response.data)) {
+            data = response.data;
+          }
+        } else if (Array.isArray(response)) {
+          data = response;
+        }
+
+        if (data.length === 0) {
+          setSafeState({ status: "empty" });
+          return;
+        }
+
+        setSafeState({ status: "success", data });
+      } catch (error) {
+        setSafeState({
+          status: "error",
+          message: getErrorMessage(error, t("failed")),
+        });
+      }
+    },
+    [setSafeState, t]
+  );
+
+  useEffect(() => {
+    loadDomains(true);
+    const interval = setInterval(() => {
+      loadDomains();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [loadDomains]);
+
+  if (state.status === "loading") {
     return <DomainListSkeleton />;
   }
 
-  if (loading) {
-    return <DomainListSkeleton />;
-  }
-
-  if (error) {
+  if (state.status === "error") {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center justify-center space-y-4">
-            <p className="text-red-500">{error}</p>
-            <Button onClick={fetchDomains}>{t("retry")}</Button>
-          </div>
-        </CardContent>
-      </Card>
+      <DataStateCard
+        variant="error"
+        title={t("error")}
+        description={state.message}
+        action={{
+          label: t("retry"),
+          onClick: () => loadDomains(true),
+        }}
+      />
     );
   }
 
-  if (domains.length === 0) {
+  if (state.status === "empty") {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center justify-center space-y-4">
-            <p className="text-muted-foreground">{t("noDomains")}</p>
-            <Button>{t("addDomain")}</Button>
-          </div>
-        </CardContent>
-      </Card>
+      <DataStateCard
+        title={t("noDomains")}
+        description={t("addDomain")}
+      />
     );
   }
+
+  const domains = state.data;
 
   return (
     <Card>

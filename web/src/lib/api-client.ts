@@ -20,6 +20,28 @@ export class ApiClientError extends Error {
 
 const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8003";
 
+export interface ApiEnvelope<T> {
+  code: number;
+  message?: string;
+  data?: T;
+}
+
+export function isApiEnvelope<T>(value: unknown): value is ApiEnvelope<T> {
+  return typeof value === "object" && value !== null && "code" in value;
+}
+
+export function getErrorMessage(error: unknown, fallback = "Unexpected error"): string {
+  if (error instanceof ApiClientError) {
+    return error.message;
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 function resolveUrl(endpoint: string): string {
   if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
     return endpoint;

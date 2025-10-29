@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { NextIntlClientProvider } from "next-intl";
+import { NextIntlClientProvider, type AbstractIntlMessages } from "next-intl";
 
 const LanguageContext = createContext<{
   locale: string;
@@ -16,10 +16,10 @@ export function LanguageProvider({
   initialMessages,
 }: {
   children: React.ReactNode;
-  initialMessages: Record<string, any>;
+  initialMessages: AbstractIntlMessages;
 }) {
   const [locale, setLocale] = useState("zh");
-  const [messages, setMessages] = useState(initialMessages);
+  const [messages, setMessages] = useState<AbstractIntlMessages>(initialMessages);
 
   useEffect(() => {
     // 从 localStorage 获取保存的语言设置
@@ -28,7 +28,7 @@ export function LanguageProvider({
       setLocale(savedLocale);
       // 动态加载语言文件
       import(`@/i18n/locales/${savedLocale}.json`).then((module) => {
-        setMessages(module.default);
+        setMessages(module.default as AbstractIntlMessages);
       });
     }
   }, []);
@@ -38,7 +38,7 @@ export function LanguageProvider({
     localStorage.setItem("locale", newLocale);
     // 动态加载新的语言文件
     const newMessages = await import(`@/i18n/locales/${newLocale}.json`);
-    setMessages(newMessages.default);
+    setMessages(newMessages.default as AbstractIntlMessages);
   };
 
   return (
