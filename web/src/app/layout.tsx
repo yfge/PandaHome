@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { LanguageProvider } from "@/components/providers/language-provider";
+import { AuthProvider } from "@/components/providers/auth-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,10 +32,12 @@ export default async function RootLayout({
     <html lang="zh">
       <body className={inter.className}>
         <LanguageProvider initialMessages={initialMessages}>
-          <div className="relative flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-          </div>
+          <AuthProvider>
+            <div className="relative flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-1">{children}</main>
+            </div>
+          </AuthProvider>
         </LanguageProvider>
       </body>
     </html>

@@ -9,6 +9,11 @@ export interface ApiClientOptions<TBody = unknown> extends Omit<RequestInit, "bo
    * How the response should be parsed. Defaults to `"json"`.
    */
   parseAs?: ResponseParser;
+  /**
+   * Whether to include the stored bearer token automatically.
+   * Defaults to `true`.
+   */
+  includeAuth?: boolean;
 }
 
 export class ApiClientError extends Error {
@@ -19,6 +24,16 @@ export class ApiClientError extends Error {
 }
 
 const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8003";
+
+let authToken: string | null = null;
+
+export function setAuthToken(token: string | null): void {
+  authToken = token;
+}
+
+export function getAuthToken(): string | null {
+  return authToken;
+}
 
 export interface ApiEnvelope<T> {
   code: number;
@@ -72,7 +87,7 @@ async function parseErrorPayload(response: Response): Promise<unknown> {
 
 export async function apiClient<TResponse = unknown, TBody = unknown>(
   endpoint: string,
-  { body, headers, parseAs = "json", ...init }: ApiClientOptions<TBody> = {},
+  { body, headers, parseAs = "json", includeAuth = true, ...init }: ApiClientOptions<TBody> = {},
 ): Promise<TResponse> {
   const requestHeaders = new Headers(headers);
   let requestBody: BodyInit | undefined;
@@ -87,6 +102,10 @@ export async function apiClient<TResponse = unknown, TBody = unknown>(
   } else if (body !== undefined) {
     requestHeaders.set("Content-Type", "application/json");
     requestBody = JSON.stringify(body);
+  }
+
+  if (includeAuth && authToken && !requestHeaders.has("Authorization")) {
+    requestHeaders.set("Authorization", `Bearer ${authToken}`);
   }
 
   const response = await fetch(resolveUrl(endpoint), {

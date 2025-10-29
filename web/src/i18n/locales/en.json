@@ -5,6 +5,7 @@
     "settings": "Settings",
     "profile": "Profile",
     "logout": "Logout",
+    "login": "Sign in",
     "welcome": "Welcome to PandaHome",
     "viewStatus": "View Status",
     "manageServices": "Manage Services",
@@ -12,7 +13,8 @@
     "details": "Details",
     "description": "A lazy developer's solution for home server management",
     "upnp": "Port Mapping",
-    "domains": "Domain Management"
+    "domains": "Domain Management",
+    "status": "Status"
   },
   "server": {
     "status": "Server Status",
@@ -98,5 +100,24 @@
     "deleteRecord": "Delete Record",
     "editRecord": "Edit Record",
     "deleteRecordConfirmMessage": "Are you sure you want to delete this record?"
+  },
+  "auth": {
+    "title": "Sign in",
+    "description": "Enter your credentials to access PandaHome.",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign in",
+    "login": "Sign in",
+    "logout": "Sign out",
+    "error": "Invalid username or password.",
+    "loggingIn": "Signing in...",
+    "loading": "Loading",
+    "loadingDescription": "Preparing your workspace...",
+    "redirecting": "Redirecting",
+    "redirectingDescription": "Hold tight while we open your dashboard.",
+    "openMenu": "Open user menu",
+    "unknownUser": "User",
+    "noAccountPrompt": "Need access? Contact your administrator.",
+    "backHome": "Back to home"
   }
-} 
+}

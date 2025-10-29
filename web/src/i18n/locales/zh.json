@@ -5,6 +5,7 @@
     "settings": "设置",
     "profile": "个人资料",
     "logout": "退出登录",
+    "login": "登录",
     "welcome": "欢迎使用 PandaHome",
     "viewStatus": "查看状态",
     "manageServices": "管理服务",
@@ -105,5 +106,24 @@
     "deleteRecord": "删除解析记录",
     "editRecord": "编辑解析记录",
     "deleteRecordConfirmMessage": "确定要删除这个解析记录吗？"
+  },
+  "auth": {
+    "title": "登录",
+    "description": "输入账号密码以访问 PandaHome。",
+    "username": "用户名",
+    "password": "密码",
+    "submit": "登录",
+    "login": "登录",
+    "logout": "退出登录",
+    "error": "用户名或密码错误",
+    "loggingIn": "正在登录...",
+    "loading": "加载中",
+    "loadingDescription": "正在准备您的工作区...",
+    "redirecting": "正在跳转",
+    "redirectingDescription": "请稍候，我们正在打开您的仪表盘。",
+    "openMenu": "打开用户菜单",
+    "unknownUser": "用户",
+    "noAccountPrompt": "需要权限？请联系管理员。",
+    "backHome": "返回首页"
   }
-} 
+}
