@@ -52,7 +52,15 @@ pip install pre-commit
 pre-commit install --install-hooks
 ```
 
-### 5. 运行应用
+### 5. 准备数据库
+
+```bash
+cd api
+alembic upgrade head
+bootstrap-admin --username admin --password changeme --email admin@example.com
+```
+
+### 6. 运行应用
 
 ```bash
 # 后端（监听 8003 端口以匹配前端默认配置）

@@ -52,7 +52,15 @@ pip install pre-commit
 pre-commit install --install-hooks
 ```
 
-### 5. Run the application
+### 5. Prepare the database
+
+```bash
+cd api
+alembic upgrade head
+bootstrap-admin --username admin --password changeme --email admin@example.com
+```
+
+### 6. Run the application
 
 ```bash
 # Backend (port 8003 to match the web client default)

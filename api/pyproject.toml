@@ -9,6 +9,7 @@ dependencies = [
     "aiohttp>=3.9.0",
     "async-upnp-client>=0.37.0",
     "bcrypt>=4.0.1",
+    "alembic>=1.14.0",
     "fastapi>=0.104.0",
     "miniupnpc>=2.2.5",
     "netifaces>=0.11.0",
@@ -31,6 +32,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
+
+[project.scripts]
+bootstrap-admin = "src.app.cli.bootstrap_admin:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
