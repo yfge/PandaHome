@@ -9,7 +9,7 @@
 - [x] Step 6 (Shared) — Refresh `.env.example`, `.env.local` template, `README.md`, and `README.zh.md` with unified env variables, install commands, and toolchain notes.
 
 ## Feature 02: Authentication & User Management Flow
-- [ ] Step 1 (Backend) — Introduce dedicated auth settings (token expiry, hashing config) and dependency-injected helpers for FastAPI routes.
+- [x] Step 1 (Backend) — Introduce dedicated auth settings (token expiry, hashing config) and dependency-injected helpers for FastAPI routes.
 - [ ] Step 2 (Backend) — Implement `/api/auth/token` (password grant) and repair `/api/users/*` endpoints to enforce RBAC via injected current-user dependency.
 - [ ] Step 3 (Backend) — Create initial Alembic migration for `users`, add admin bootstrap script/CLI, and document how to seed first admin.
 - [ ] Step 4 (Backend QA) — Cover token issuance + user CRUD with pytest + FastAPI TestClient (success, invalid credentials, permission denied).

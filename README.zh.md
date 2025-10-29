@@ -79,7 +79,11 @@ npm run dev --prefix web
 | --- | --- | --- |
 | `DATABASE_URL` | SQLAlchemy 数据库连接字符串 | `sqlite:///./app.db` |
 | `SECRET_KEY` | JWT 签名密钥，生产环境需替换 | `change-me` |
+| `JWT_ALGORITHM` | JWT 签名算法 | `HS256` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token 有效期（分钟） | `30` |
+| `AUTH_TOKEN_URL` | OAuth2 token 接口路径 | `token` |
+| `AUTH_HASHING_SCHEMES` | Passlib 哈希算法（逗号分隔） | `bcrypt` |
+| `AUTH_HASHING_DEPRECATED` | Passlib 过期哈希策略 | `auto` |
 | `ALIYUN_ACCESS_KEY_ID` | 阿里云 Access Key ID | _(必填)_ |
 | `ALIYUN_ACCESS_KEY_SECRET` | 阿里云 Access Key Secret | _(必填)_ |
 | `ALIYUN_REGION_ID` | 阿里云 DNS API 区域 | `cn-hangzhou` |
