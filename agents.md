@@ -55,6 +55,7 @@ Keep this structure tidy; prefer adding new domains under the existing patterns.
   5. `## Next steps`
 - File naming: `YYYYMMDD-HHMMSS-topic.md` using UTC. Use lowercase kebab-case topic labels.
 - Reference touched files (`api/src/...`, `web/src/...`) and include snippets when helpful.
+- Document the concrete work performed, list the files changed, and call out any blockers or decisions with brief reasoning.
 - Capture test commands, even if skipped (write `Not run – reason`).
 - Store risks, blockers, TODOs under `## Next steps` for traceability.
 
@@ -76,6 +77,7 @@ Keep this structure tidy; prefer adding new domains under the existing patterns.
 
 ## 7. Commit & Review Policy
 
+- Keep every commit atomic—limit changes to the smallest coherent unit of work and avoid bundling unrelated edits.
 - Use Conventional Commits (`type(scope?): message`). Common types: `feat`, `fix`, `chore`, `refactor`, `docs`, `test`.
 - Never squash away `agent_chats` history; each commit should link to a log entry.
 - When raising PRs, summarise the corresponding chat log(s) and verification steps.
