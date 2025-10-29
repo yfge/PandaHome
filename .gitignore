@@ -50,6 +50,10 @@ logs/
 .env.development.local
 .env.test.local
 .env.production.local
+.env
+!.env.example
+!api/.env.example
+!web/.env.local.example
 
 # Frontend
 # Dependencies

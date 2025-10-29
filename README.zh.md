@@ -26,26 +26,23 @@ cd PandaHome
 ### 2. 安装依赖
 
 ```bash
-# 后端
-cd api
-pip install -e .
+# 后端（在仓库根目录执行）
+uv pip install --system -e api
+# 或者
+pip install -e api
 
 # 前端
-cd web
-npm install
+npm install --prefix web
 ```
 
 ### 3. 配置环境变量
 
 ```bash
-# 后端 (.env)
-ALIYUN_ACCESS_KEY_ID=你的访问密钥ID
-ALIYUN_ACCESS_KEY_SECRET=你的访问密钥密码
-ALIYUN_REGION_ID=cn-hangzhou
-
-# 前端 (.env.local)
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+cp api/.env.example api/.env
+cp web/.env.local.example web/.env.local
 ```
+
+随后根据需求修改变量值（参见[环境变量](#环境变量)）。
 
 ### 4. 安装开发工具
 
@@ -58,23 +55,40 @@ pre-commit install --install-hooks
 ### 5. 运行应用
 
 ```bash
-# 后端
-cd api
-uvicorn src.app.main:app --reload --app-dir src
+# 后端（监听 8003 端口以匹配前端默认配置）
+uvicorn src.app.main:app --reload --app-dir api/src --port 8003
 
 # 前端
-cd web
-npm run dev
+npm run dev --prefix web
 ```
 
 - Web 界面：http://localhost:3000
-- API 文档：http://localhost:8000/docs
+- API 文档：http://localhost:8003/docs
 
 ## 开发流程
 
 - 每次由智能体或双人编程产生代码改动时，必须在 `agent_chats/YYYYMMDD-HHMMSS-topic.md` 中记录，模板见 `agent_chats/README.md`。
 - 在提交 PR 前运行 `pre-commit run --all-files`，钩子会自动执行 Ruff 检查/格式化（`api/`）以及安装了依赖后的 `npm run lint`（前端）。
 - 完整的工程手册请参考仓库根目录下的 `agents.md`。
+
+## 环境变量
+
+后端（`api/.env`）
+
+| 变量 | 说明 | 默认值 |
+| --- | --- | --- |
+| `DATABASE_URL` | SQLAlchemy 数据库连接字符串 | `sqlite:///./app.db` |
+| `SECRET_KEY` | JWT 签名密钥，生产环境需替换 | `change-me` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token 有效期（分钟） | `30` |
+| `ALIYUN_ACCESS_KEY_ID` | 阿里云 Access Key ID | _(必填)_ |
+| `ALIYUN_ACCESS_KEY_SECRET` | 阿里云 Access Key Secret | _(必填)_ |
+| `ALIYUN_REGION_ID` | 阿里云 DNS API 区域 | `cn-hangzhou` |
+
+前端（`web/.env.local`）
+
+| 变量 | 说明 | 默认值 |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_BASE_URL` | FastAPI 后端的基础地址 | `http://localhost:8003` |
 
 ## API 接口
 

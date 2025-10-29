@@ -26,26 +26,23 @@ cd PandaHome
 ### 2. Install dependencies
 
 ```bash
-# Backend
-cd api
-pip install -e .
+# Backend (run from repository root)
+uv pip install --system -e api
+# or
+pip install -e api
 
 # Frontend
-cd web
-npm install
+npm install --prefix web
 ```
 
 ### 3. Configure environment variables
 
 ```bash
-# Backend (.env)
-ALIYUN_ACCESS_KEY_ID=your_access_key_id
-ALIYUN_ACCESS_KEY_SECRET=your_access_key_secret
-ALIYUN_REGION_ID=cn-hangzhou
-
-# Frontend (.env.local)
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+cp api/.env.example api/.env
+cp web/.env.local.example web/.env.local
 ```
+
+Then edit the files to provide your secrets (see [Environment Variables](#environment-variables)).
 
 ### 4. Install developer tooling
 
@@ -58,23 +55,40 @@ pre-commit install --install-hooks
 ### 5. Run the application
 
 ```bash
-# Backend
-cd api
-uvicorn src.app.main:app --reload --app-dir src
+# Backend (port 8003 to match the web client default)
+uvicorn src.app.main:app --reload --app-dir api/src --port 8003
 
 # Frontend
-cd web
-npm run dev
+npm run dev --prefix web
 ```
 
 - Web UI: http://localhost:3000
-- API Docs: http://localhost:8000/docs
+- API Docs: http://localhost:8003/docs
 
 ## Development Workflow
 
 - Log every code-producing session in `agent_chats/YYYYMMDD-HHMMSS-topic.md` following the template described in `agent_chats/README.md`.
 - Run `pre-commit run --all-files` before opening a PR; hooks enforce Ruff lint/format on `api/` and `npm run lint` for the frontend (when dependencies are installed).
 - See `agents.md` for the full engineering handbook covering repository layout, conventions, and incident process.
+
+## Environment Variables
+
+Backend (`api/.env`):
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `DATABASE_URL` | SQLAlchemy database connection string. | `sqlite:///./app.db` |
+| `SECRET_KEY` | JWT signing key; replace in production. | `change-me` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime in minutes. | `30` |
+| `ALIYUN_ACCESS_KEY_ID` | Aliyun access key ID. | _(required)_ |
+| `ALIYUN_ACCESS_KEY_SECRET` | Aliyun access key secret. | _(required)_ |
+| `ALIYUN_REGION_ID` | Aliyun region for DNS API. | `cn-hangzhou` |
+
+Frontend (`web/.env.local`):
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_BASE_URL` | Base URL of the FastAPI backend. | `http://localhost:8003` |
 
 ## API Endpoints
 
