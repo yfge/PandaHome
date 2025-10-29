@@ -1,7 +1,7 @@
 # PandaHome Task Backlog
 
 ## Feature 01: Core Platform & Tooling Baseline
-- [ ] Step 1 (Backend) — Audit actual runtime imports (UPnP, auth, Aliyun) and list missing dependencies with required versions.
+- [x] Step 1 (Backend) — Audit actual runtime imports (UPnP, auth, Aliyun) and list missing dependencies with required versions.
 - [ ] Step 2 (Backend) — Update `api/pyproject.toml` to include the audited deps (`async-upnp-client`, `aiohttp`, `netifaces`, `python-jose`, `passlib`, etc.) and verify `uv pip install -e api` succeeds.
 - [ ] Step 3 (Backend) — Normalize configuration defaults (`SECRET_KEY`, database URL, Aliyun env names) through `settings` and ensure `.env` loading is consistent.
 - [ ] Step 4 (Frontend) — Add `src/lib/utils/cn.ts` (class name helper) and `src/lib/api-client.ts` (typed fetch wrapper honoring `NEXT_PUBLIC_API_BASE_URL`).
