@@ -26,6 +26,9 @@ export class ApiClientError extends Error {
 const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8003";
 
 let authToken: string | null = null;
+type UnauthorizedHandler = () => void;
+
+let unauthorizedHandler: UnauthorizedHandler | null = null;
 
 export function setAuthToken(token: string | null): void {
   authToken = token;
@@ -33,6 +36,10 @@ export function setAuthToken(token: string | null): void {
 
 export function getAuthToken(): string | null {
   return authToken;
+}
+
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): void {
+  unauthorizedHandler = handler;
 }
 
 export interface ApiEnvelope<T> {
@@ -122,6 +129,10 @@ export async function apiClient<TResponse = unknown, TBody = unknown>(
         : typeof payload === "string"
           ? payload
           : `Request failed with status ${response.status}`) ?? `Request failed with status ${response.status}`;
+
+    if (response.status === 401 && unauthorizedHandler) {
+      unauthorizedHandler();
+    }
 
     throw new ApiClientError(message, response.status, payload);
   }

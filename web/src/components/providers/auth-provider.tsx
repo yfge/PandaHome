@@ -16,6 +16,7 @@ import {
   getErrorMessage,
   isApiEnvelope,
   setAuthToken,
+  setUnauthorizedHandler,
   type ApiEnvelope,
 } from "@/lib/api-client";
 
@@ -107,6 +108,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsBootstrapping(false);
       });
   }, [applyToken]);
+
+  useEffect(() => {
+    const handler = () => {
+      applyToken(null);
+      setUser(null);
+      if (typeof window !== "undefined") {
+        const current = window.location.pathname + window.location.search;
+        router.replace(`/login?next=${encodeURIComponent(current)}`);
+      } else {
+        router.replace("/login");
+      }
+    };
+
+    setUnauthorizedHandler(handler);
+    return () => {
+      setUnauthorizedHandler(null);
+    };
+  }, [applyToken, router]);
 
   const login = useCallback(
     async (username: string, password: string) => {
