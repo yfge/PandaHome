@@ -102,6 +102,13 @@ Frontend (`web/.env.local`):
 | --- | --- | --- |
 | `NEXT_PUBLIC_API_BASE_URL` | Base URL of the FastAPI backend. | `http://localhost:8003` |
 
+## Authentication Overview
+
+1. Seed an administrator with `bootstrap-admin --username admin --password changeme --email admin@example.com` (re-run to rotate credentials).
+2. Start backend + frontend, then visit `http://localhost:3000/login` to sign in.
+3. Successful login stores a bearer token locally; protected routes (`/status`, `/upnp`, `/domains`) require the token.
+4. Expired or invalid tokens trigger automatic logout and redirect back to `/login`.
+
 ## API Endpoints
 
 ### UPnP

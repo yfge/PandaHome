@@ -102,6 +102,13 @@ npm run dev --prefix web
 | --- | --- | --- |
 | `NEXT_PUBLIC_API_BASE_URL` | FastAPI 后端的基础地址 | `http://localhost:8003` |
 
+## 认证流程概述
+
+1. 通过 `bootstrap-admin --username admin --password changeme --email admin@example.com` 初始化管理员账号（重复执行可更新密码）。
+2. 启动后端和前端，访问 `http://localhost:3000/login` 并登录。
+3. 登录成功后会在本地保存 token，受保护的页面（`/status`、`/upnp`、`/domains`）需要该 token 才能访问。
+4. 当 token 失效或被撤销时，前端会自动退出并跳转回登录页。
+
 ## API 接口
 
 ### UPnP
