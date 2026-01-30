@@ -76,8 +76,11 @@ npm run dev --prefix web
 ## Development Workflow
 
 - Log every code-producing session in `agent_chats/YYYYMMDD-HHMMSS-topic.md` following the template described in `agent_chats/README.md`.
-- Run `pre-commit run --all-files` before opening a PR; hooks enforce Ruff lint/format on `api/` and `npm run lint` for the frontend (when dependencies are installed).
-- See `agents.md` for the full engineering handbook covering repository layout, conventions, and incident process.
+- Run tests before opening a PR:
+  - `pytest -q api/tests`
+  - `npm run test --prefix web`
+- Run `pre-commit run --all-files` before opening a PR; hooks enforce Ruff lint/format on `api/`, `npm run lint` (and tests) for the frontend when dependencies are installed.
+- See `AGENTS.md` for the full engineering handbook covering repository layout, conventions, and incident process.
 
 ## Environment Variables
 
@@ -109,20 +112,31 @@ Frontend (`web/.env.local`):
 3. Successful login stores a bearer token locally; protected routes (`/status`, `/upnp`, `/domains`) require the token.
 4. Expired or invalid tokens trigger automatic logout and redirect back to `/login`.
 
+See `docs/auth-lifecycle.md` for the full authentication lifecycle (env requirements, CLI bootstrap, login/logout flow).
+
 ## API Endpoints
+
+### Status
+- `GET /api/status` - System status snapshot
+- `GET /health` - Health check
+
+See `docs/monitoring.md` for data sources, update cadence, and troubleshooting tips.
 
 ### UPnP
 - `GET /api/upnp/mappings` - List all port mappings
 - `POST /api/upnp/mappings` - Add a new port mapping
-- `DELETE /api/upnp/mappings/{id}` - Remove a port mapping
+- `DELETE /api/upnp/mappings/{external_port}?protocol=TCP|UDP` - Remove a port mapping (defaults to `TCP`)
+
+See `docs/upnp.md` for router prerequisites, troubleshooting tips, and security notes.
 
 ### Domain Management
 - `GET /api/domains/domains` - List all domains
-- `POST /api/domains/domains` - Add a new domain
 - `GET /api/domains/domains/{domain}/records` - List domain records
 - `POST /api/domains/domains/{domain}/records` - Add a new record
 - `PUT /api/domains/domains/{domain}/records/{record_id}` - Update a record
 - `DELETE /api/domains/domains/{domain}/records/{record_id}` - Delete a record
+
+See `docs/domains.md` for Aliyun access key setup, required permissions, and rate limit troubleshooting.
 
 ## License
 

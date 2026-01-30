@@ -6,4 +6,4 @@ export interface UpnpMapping {
   protocol: 'TCP' | 'UDP';
   enabled: boolean;
   lease_duration: number;
-} 
+}

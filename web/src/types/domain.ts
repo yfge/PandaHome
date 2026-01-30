@@ -18,4 +18,4 @@ export interface DomainRecord {
   UpdateTimestamp?: number;
   Priority?: number;
   Weight?: number;
-} 
+}

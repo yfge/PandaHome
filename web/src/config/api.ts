@@ -1,4 +1,7 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8003';
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  process.env.NEXT_PUBLIC_API_BASE ??
+  "http://localhost:8003";
 
 export const API_ENDPOINTS = {
   status: `${API_BASE}/api/status`,
@@ -6,4 +9,4 @@ export const API_ENDPOINTS = {
   domains: `${API_BASE}/api/domains/domains`
 } as const;
 
-export type APIEndpoints = typeof API_ENDPOINTS; 
+export type APIEndpoints = typeof API_ENDPOINTS;

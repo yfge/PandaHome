@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { LanguageProvider } from "@/components/providers/language-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { ToastProvider } from "@/components/providers/toast-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -32,14 +33,16 @@ export default async function RootLayout({
     <html lang="zh">
       <body className={inter.className}>
         <LanguageProvider initialMessages={initialMessages}>
-          <AuthProvider>
-            <div className="relative flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1">{children}</main>
-            </div>
-          </AuthProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <div className="relative flex min-h-screen flex-col">
+                <Header />
+                <main className="flex-1">{children}</main>
+              </div>
+            </AuthProvider>
+          </ToastProvider>
         </LanguageProvider>
       </body>
     </html>
   );
-} 
+}

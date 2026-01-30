@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { API_ENDPOINTS } from "@/config/api";
 import { DataStateCard } from "@/components/common/data-state-card";
 import { apiClient, getErrorMessage, isApiEnvelope, type ApiEnvelope } from "@/lib/api-client";
@@ -35,6 +36,7 @@ export function ServerStatus() {
   const t = useTranslations();
   const [state, setState] = useState<AsyncState<ServerStatus>>({ status: "loading" });
   const isUnmountedRef = useRef(false);
+  const [refreshIntervalMs, setRefreshIntervalMs] = useState(30000);
 
   useEffect(() => {
     isUnmountedRef.current = false;
@@ -91,9 +93,9 @@ export function ServerStatus() {
     loadStatus(true);
     const interval = setInterval(() => {
       loadStatus();
-    }, 30000);
+    }, refreshIntervalMs);
     return () => clearInterval(interval);
-  }, [loadStatus]);
+  }, [loadStatus, refreshIntervalMs]);
 
   if (state.status === "loading") {
     return <StatusSkeleton />;
@@ -125,115 +127,134 @@ export function ServerStatus() {
   const status = state.data;
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      <Card>
-        <CardHeader>
-          <CardTitle>CPU</CardTitle>
-          <CardDescription>
-            {t("server.cpuUsage", { usage: status.cpu.usage.toFixed(1) })}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span>{t("server.cores")}</span>
-              <span>{status.cpu.cores}</span>
-            </div>
-            <div className="w-full bg-secondary h-2 rounded-full">
-              <div
-                className="bg-primary h-2 rounded-full transition-all"
-                style={{ width: `${status.cpu.usage}%` }}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+        <div className="flex items-center gap-2">
+          <label htmlFor="server-refresh-interval" className="text-sm font-medium">
+            {t("server.refreshInterval")}
+          </label>
+          <select
+            id="server-refresh-interval"
+            value={refreshIntervalMs}
+            onChange={(event) => setRefreshIntervalMs(Number.parseInt(event.target.value, 10))}
+            className="bg-background border-input focus-visible:ring-primary/70 ring-offset-background flex h-9 rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+          >
+            <option value={5000}>{t("server.refreshEverySeconds", { seconds: 5 })}</option>
+            <option value={10000}>{t("server.refreshEverySeconds", { seconds: 10 })}</option>
+            <option value={30000}>{t("server.refreshEverySeconds", { seconds: 30 })}</option>
+            <option value={60000}>{t("server.refreshEverySeconds", { seconds: 60 })}</option>
+          </select>
+        </div>
+        <Button type="button" variant="outline" onClick={() => loadStatus(true)}>
+          {t("server.refresh")}
+        </Button>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("server.memory")}</CardTitle>
-          <CardDescription>
-            {t("server.memoryUsage", {
-              used: formatBytes(status.memory.used),
-              total: formatBytes(status.memory.total),
-            })}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span>{t("server.free")}</span>
-              <span>{formatBytes(status.memory.free)}</span>
-            </div>
-            <div className="w-full bg-secondary h-2 rounded-full">
-              <div
-                className="bg-primary h-2 rounded-full transition-all"
-                style={{
-                  width: `${(status.memory.used / status.memory.total) * 100}%`,
-                }}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("server.disk")}</CardTitle>
-          <CardDescription>
-            {t("server.diskUsage", {
-              used: formatBytes(status.disk.used),
-              total: formatBytes(status.disk.total),
-            })}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span>{t("server.free")}</span>
-              <span>{formatBytes(status.disk.free)}</span>
-            </div>
-            <div className="w-full bg-secondary h-2 rounded-full">
-              <div
-                className="bg-primary h-2 rounded-full transition-all"
-                style={{
-                  width: `${(status.disk.used / status.disk.total) * 100}%`,
-                }}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="md:col-span-2 lg:col-span-3">
-        <CardHeader>
-          <CardTitle>{t("server.services")}</CardTitle>
-          <CardDescription>{t("server.serviceStatus")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {status.services.map((service) => (
-              <div
-                key={service.name}
-                className="flex items-center justify-between p-4 border rounded-lg"
-              >
-                <span>{service.name}</span>
-                <span
-                  className={`px-2 py-1 rounded-full text-sm ${
-                    service.status === "running"
-                      ? "bg-green-100 text-green-800"
-                      : service.status === "stopped"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {service.status}
-                </span>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>CPU</CardTitle>
+            <CardDescription>{t("server.cpuUsage", { usage: status.cpu.usage.toFixed(1) })}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>{t("server.cores")}</span>
+                <span>{status.cpu.cores}</span>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <div className="w-full bg-secondary h-2 rounded-full">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all"
+                  style={{ width: `${status.cpu.usage}%` }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("server.memory")}</CardTitle>
+            <CardDescription>
+              {t("server.memoryUsage", {
+                used: formatBytes(status.memory.used),
+                total: formatBytes(status.memory.total),
+              })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>{t("server.free")}</span>
+                <span>{formatBytes(status.memory.free)}</span>
+              </div>
+              <div className="w-full bg-secondary h-2 rounded-full">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all"
+                  style={{
+                    width: `${(status.memory.used / status.memory.total) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("server.disk")}</CardTitle>
+            <CardDescription>
+              {t("server.diskUsage", {
+                used: formatBytes(status.disk.used),
+                total: formatBytes(status.disk.total),
+              })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>{t("server.free")}</span>
+                <span>{formatBytes(status.disk.free)}</span>
+              </div>
+              <div className="w-full bg-secondary h-2 rounded-full">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all"
+                  style={{
+                    width: `${(status.disk.used / status.disk.total) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2 lg:col-span-3">
+          <CardHeader>
+            <CardTitle>{t("server.services")}</CardTitle>
+            <CardDescription>{t("server.serviceStatus")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {status.services.map((service) => (
+                <div key={service.name} className="flex items-center justify-between rounded-lg border p-4">
+                  <span>{service.name}</span>
+                  <span
+                    className={`rounded-full px-2 py-1 text-sm ${
+                      service.status === "running"
+                        ? "bg-green-100 text-green-800"
+                        : service.status === "stopped"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {service.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -270,4 +291,4 @@ function formatBytes(bytes: number): string {
   }
 
   return `${value.toFixed(1)} ${units[unitIndex]}`;
-} 
+}

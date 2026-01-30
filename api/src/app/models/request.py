@@ -6,4 +6,4 @@ class SetupRequest(BaseModel):
     rr: str
     external_port: int
     internal_port: int
-    protocol: str = "TCP" 
+    protocol: str = "TCP"

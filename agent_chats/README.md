@@ -19,3 +19,4 @@ Each log must include the following headings:
 - Reference files with project-relative paths (e.g. `api/src/app/main.py`).
 - Prefer ASCII; document any non-ASCII usage.
 - Keep entries committed alongside the code they describe.
+- Use `## Next steps` as a lightweight follow-up tracker; include an owner, due date, or issue link when possible.

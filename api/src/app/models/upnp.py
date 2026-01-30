@@ -9,4 +9,4 @@ class PortMapping(BaseModel):
     local_ip: str = Field("", description="本地IP地址")
     description: str = Field("", description="端口映射描述")
     enabled: bool = Field(True, description="是否启用")
-    lease_duration: int = Field(0, description="租期(秒)，0表示永久") 
+    lease_duration: int = Field(0, description="租期(秒)，0表示永久")

@@ -3,6 +3,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { NextIntlClientProvider, type AbstractIntlMessages } from "next-intl";
 
+const DEFAULT_TIME_ZONE = "Asia/Shanghai";
+
 const LanguageContext = createContext<{
   locale: string;
   setLocale: (locale: string) => void;
@@ -43,11 +45,15 @@ export function LanguageProvider({
 
   return (
     <LanguageContext.Provider value={{ locale, setLocale: handleSetLocale }}>
-      <NextIntlClientProvider locale={locale} messages={messages}>
+      <NextIntlClientProvider
+        locale={locale}
+        messages={messages}
+        timeZone={DEFAULT_TIME_ZONE}
+      >
         {children}
       </NextIntlClientProvider>
     </LanguageContext.Provider>
   );
 }
 
-export const useLanguage = () => useContext(LanguageContext); 
+export const useLanguage = () => useContext(LanguageContext);

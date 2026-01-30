@@ -10,13 +10,11 @@ from sqlalchemy.orm import Session, sessionmaker
 from src.app.auth.auth import get_password_hash
 from src.app.config import settings
 from src.app.database.database import Base, get_db
-from src.app.main import app
-
-# Disable slow startup/shutdown handlers (UPnP discovery) during tests.
-app.router.on_startup.clear()
-app.router.on_shutdown.clear()
 from src.app.models.db_models import User
 from src.app.models.user import UserRole
+from src.app.main import app
+
+# UPnP discovery is skipped in FastAPI lifespan when running under pytest.
 
 
 @pytest.fixture()

@@ -28,7 +28,19 @@
     "viewDetails": "查看详情",
     "error": "无法加载服务器状态",
     "retry": "重试",
-    "empty": "暂无状态数据"
+    "empty": "暂无状态数据",
+    "cpuUsage": "使用率：{usage}%",
+    "cores": "核心数",
+    "memory": "内存",
+    "memoryUsage": "已用 {used} / {total}",
+    "free": "可用",
+    "disk": "磁盘",
+    "diskUsage": "已用 {used} / {total}",
+    "services": "服务",
+    "serviceStatus": "服务状态",
+    "refresh": "刷新",
+    "refreshInterval": "刷新间隔",
+    "refreshEverySeconds": "每 {seconds} 秒"
   },
   "services": {
     "management": "服务管理",
@@ -70,7 +82,24 @@
     "delete": "删除",
     "edit": "编辑",
     "success": "成功",
-    "failed": "失败"
+    "failed": "失败",
+    "toast": {
+      "addSuccess": "端口映射已添加。",
+      "editSuccess": "端口映射已更新。",
+      "deleteSuccess": "端口映射已删除。"
+    },
+    "form": {
+      "required": "此项必填。",
+      "invalidPort": "端口范围为 1-65535。",
+      "invalidLease": "租期必须大于等于 0。",
+      "addDescription": "在路由器上创建新的端口映射。",
+      "editDescription": "将该端口映射替换为新的配置。",
+      "descriptionPlaceholder": "可选描述",
+      "protocol": "协议",
+      "internalIp": "内部 IP",
+      "internalPort": "内部端口",
+      "externalPort": "外部端口"
+    }
   },
   "domain": {
     "title": "域名管理",
@@ -105,7 +134,25 @@
     "addRecord": "添加解析记录",
     "deleteRecord": "删除解析记录",
     "editRecord": "编辑解析记录",
-    "deleteRecordConfirmMessage": "确定要删除这个解析记录吗？"
+    "deleteRecordConfirmMessage": "确定要删除这个解析记录吗？",
+    "edit": "编辑",
+    "recordDescription": "{rr} {type} \u2192 {value}",
+    "toast": {
+      "addSuccess": "解析记录已添加。",
+      "editSuccess": "解析记录已更新。",
+      "deleteSuccess": "解析记录已删除。"
+    },
+    "form": {
+      "required": "此字段为必填项。",
+      "invalidTtl": "TTL 必须大于等于 1。",
+      "invalidPriority": "优先级必须大于等于 1。",
+      "addDescription": "为该域名创建新的解析记录。",
+      "editDescription": "更新选中的解析记录。",
+      "rr": "主机记录 (RR)",
+      "rrPlaceholder": "例如：www",
+      "valuePlaceholder": "例如：1.2.3.4",
+      "linePlaceholder": "例如：default"
+    }
   },
   "auth": {
     "title": "登录",

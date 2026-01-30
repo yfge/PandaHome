@@ -32,4 +32,3 @@ This document describes how PandaHome handles authentication end-to-end across t
 
 - To change an admin password, rerun `bootstrap-admin` with the same username and new password.
 - For additional users, authenticate as admin and use the `/api/users` REST endpoints (UI coming soon) to manage accounts.
-

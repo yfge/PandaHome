@@ -35,8 +35,22 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
       - id: web-lint
-        name: Web lint (Next.js)
+        name: Web lint (ESLint)
         entry: scripts/run_web_lint.sh
         language: system
         pass_filenames: false
         stages: [pre-commit]
+      - id: api-tests
+        name: API tests (pytest)
+        entry: scripts/run_api_tests.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+        files: ^api/
+      - id: web-tests
+        name: Web tests (Vitest)
+        entry: scripts/run_web_tests.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+        files: ^web/

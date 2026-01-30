@@ -22,7 +22,19 @@
     "viewDetails": "View Details",
     "error": "Unable to load server status",
     "retry": "Retry",
-    "empty": "No status data available"
+    "empty": "No status data available",
+    "cpuUsage": "Usage: {usage}%",
+    "cores": "Cores",
+    "memory": "Memory",
+    "memoryUsage": "{used} / {total} used",
+    "free": "Free",
+    "disk": "Disk",
+    "diskUsage": "{used} / {total} used",
+    "services": "Services",
+    "serviceStatus": "Service status",
+    "refresh": "Refresh",
+    "refreshInterval": "Refresh interval",
+    "refreshEverySeconds": "Every {seconds}s"
   },
   "services": {
     "management": "Service Management",
@@ -64,7 +76,24 @@
     "delete": "Delete",
     "edit": "Edit",
     "success": "Success",
-    "failed": "Failed"
+    "failed": "Failed",
+    "toast": {
+      "addSuccess": "Port mapping added.",
+      "editSuccess": "Port mapping updated.",
+      "deleteSuccess": "Port mapping deleted."
+    },
+    "form": {
+      "required": "This field is required.",
+      "invalidPort": "Port must be between 1 and 65535.",
+      "invalidLease": "Lease duration must be 0 or greater.",
+      "addDescription": "Create a new port mapping on your router.",
+      "editDescription": "Replace the selected port mapping with new values.",
+      "descriptionPlaceholder": "Optional description",
+      "protocol": "Protocol",
+      "internalIp": "Internal IP",
+      "internalPort": "Internal port",
+      "externalPort": "External port"
+    }
   },
   "domain": {
     "title": "Domain Management",
@@ -99,7 +128,25 @@
     "addRecord": "Add Record",
     "deleteRecord": "Delete Record",
     "editRecord": "Edit Record",
-    "deleteRecordConfirmMessage": "Are you sure you want to delete this record?"
+    "deleteRecordConfirmMessage": "Are you sure you want to delete this record?",
+    "edit": "Edit",
+    "recordDescription": "{rr} {type} \u2192 {value}",
+    "toast": {
+      "addSuccess": "Record added.",
+      "editSuccess": "Record updated.",
+      "deleteSuccess": "Record deleted."
+    },
+    "form": {
+      "required": "This field is required.",
+      "invalidTtl": "TTL must be 1 or greater.",
+      "invalidPriority": "Priority must be 1 or greater.",
+      "addDescription": "Create a new DNS record for this domain.",
+      "editDescription": "Update the selected DNS record.",
+      "rr": "Host (RR)",
+      "rrPlaceholder": "e.g. www",
+      "valuePlaceholder": "e.g. 1.2.3.4",
+      "linePlaceholder": "e.g. default"
+    }
   },
   "auth": {
     "title": "Sign in",

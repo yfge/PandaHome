@@ -6,7 +6,7 @@ if [[ ! -d "web" ]]; then
 fi
 
 if [[ ! -d "web/node_modules" ]]; then
-  echo "[web lint] Skipping Next.js lint (run npm install inside web/ first)." >&2
+  echo "[web lint] Skipping web lint (run npm install inside web/ first)." >&2
   exit 0
 fi
 

@@ -9,6 +9,8 @@ export function UpnpPageClient() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // This is a safe one-time hydration guard (avoids mismatches while i18n/auth providers bootstrap).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -22,4 +24,4 @@ export function UpnpPageClient() {
       <UpnpMappingList />
     </div>
   );
-} 
+}

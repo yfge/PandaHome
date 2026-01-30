@@ -10,4 +10,4 @@ export default createMiddleware({
 export const config = {
   // 匹配所有路径除了 api, _next, 静态文件等
   matcher: ['/((?!api|_next|.*\\..*).*)']
-}; 
+};

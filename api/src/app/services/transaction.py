@@ -44,4 +44,4 @@ class TransactionManager:
                     op.rollback(op.result)
             except Exception as e:
                 # 记录回滚错误但不中断回滚过程
-                print(f"回滚操作 {op.name} 失败: {str(e)}") 
+                print(f"回滚操作 {op.name} 失败: {str(e)}")

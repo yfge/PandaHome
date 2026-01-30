@@ -52,6 +52,10 @@ export function isApiEnvelope<T>(value: unknown): value is ApiEnvelope<T> {
   return typeof value === "object" && value !== null && "code" in value;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 export function getErrorMessage(error: unknown, fallback = "Unexpected error"): string {
   if (error instanceof ApiClientError) {
     return error.message;
@@ -92,6 +96,38 @@ async function parseErrorPayload(response: Response): Promise<unknown> {
   }
 }
 
+function extractErrorMessage(payload: unknown): string | undefined {
+  if (typeof payload === "string") {
+    return payload;
+  }
+
+  if (!isRecord(payload)) {
+    return undefined;
+  }
+
+  if (typeof payload.message === "string") {
+    return payload.message;
+  }
+
+  const detail = payload.detail;
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  if (isRecord(detail) && typeof detail.message === "string") {
+    return detail.message;
+  }
+
+  if (Array.isArray(detail)) {
+    const first = detail.find((item) => isRecord(item) && typeof item.msg === "string");
+    if (first && isRecord(first) && typeof first.msg === "string") {
+      return first.msg;
+    }
+  }
+
+  return undefined;
+}
+
 export async function apiClient<TResponse = unknown, TBody = unknown>(
   endpoint: string,
   { body, headers, parseAs = "json", includeAuth = true, ...init }: ApiClientOptions<TBody> = {},
@@ -123,12 +159,7 @@ export async function apiClient<TResponse = unknown, TBody = unknown>(
 
   if (!response.ok) {
     const payload = await parseErrorPayload(response);
-    const message =
-      (payload && typeof payload === "object" && "message" in payload && typeof payload.message === "string"
-        ? payload.message
-        : typeof payload === "string"
-          ? payload
-          : `Request failed with status ${response.status}`) ?? `Request failed with status ${response.status}`;
+    const message = extractErrorMessage(payload) ?? `Request failed with status ${response.status}`;
 
     if (response.status === 401 && unauthorizedHandler) {
       unauthorizedHandler();

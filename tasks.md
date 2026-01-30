@@ -15,34 +15,34 @@
 - [x] Step 4 (Backend QA) — Cover token issuance + user CRUD with pytest + FastAPI TestClient (success, invalid credentials, permission denied).
 - [x] Step 5 (Frontend) — Build login page (form validation, error feedback), persist token (secure storage), and expose logout handling.
 - [x] Step 6 (Frontend) — Protect management routes (domains, UPnP) behind auth, inject token into API client headers, and handle 401 → redirect to login.
-- [ ] Step 7 (Shared) — Document authentication lifecycle (env requirements, CLI bootstrap, login flow) in READMEs and architecture notes.
+- [x] Step 7 (Shared) — Document authentication lifecycle (env requirements, CLI bootstrap, login flow) in READMEs and architecture notes.
 
 ## Feature 03: UPnP Port Management Experience
-- [ ] Step 1 (Backend) — Refactor `UPNPService` into a FastAPI dependency with explicit startup/shutdown, awaited async operations, and clear error enums.
-- [ ] Step 2 (Backend) — Implement validation helpers (port availability, duplicate mapping detection) and refresh caches after mutations.
-- [ ] Step 3 (Backend QA) — Add pytest suites mocking UPnP devices to cover status, list, add, delete, and failure scenarios.
-- [ ] Step 4 (Frontend) — Build mapping CRUD UI: modal form, edit/delete actions, optimistic updates, and toast feedback via API client.
-- [ ] Step 5 (Frontend) — Ensure list view shows loading skeletons, empty states, and localized error banners for fetch failures.
-- [ ] Step 6 (Shared) — Write UPnP operations guide (router prerequisites, troubleshooting) under `docs/upnp.md` and reference it from READMEs/agent logs.
+- [x] Step 1 (Backend) — Refactor `UPNPService` into a FastAPI dependency with explicit startup/shutdown, awaited async operations, and clear error enums.
+- [x] Step 2 (Backend) — Implement validation helpers (port availability, duplicate mapping detection) and refresh caches after mutations.
+- [x] Step 3 (Backend QA) — Add pytest suites mocking UPnP devices to cover status, list, add, delete, and failure scenarios.
+- [x] Step 4 (Frontend) — Build mapping CRUD UI: modal form, edit/delete actions, optimistic updates, and toast feedback via API client.
+- [x] Step 5 (Frontend) — Ensure list view shows loading skeletons, empty states, and localized error banners for fetch failures.
+- [x] Step 6 (Shared) — Write UPnP operations guide (router prerequisites, troubleshooting) under `docs/upnp.md` and reference it from READMEs/agent logs.
 
 ## Feature 04: Domain Management Workflow
-- [ ] Step 1 (Backend) — Define Pydantic schemas for domain + record requests/responses and enforce body payloads instead of query params.
-- [ ] Step 2 (Backend) — Update routers/service layer to use the schemas, add structured logging, and map Aliyun errors to friendly API messages.
-- [ ] Step 3 (Backend QA) — Mock Aliyun SDK in pytest to cover list/create/update/delete flows plus error propagation.
-- [ ] Step 4 (Frontend) — Implement domain/record management UI (create/edit/delete dialogs, inline validation) using the shared API client.
-- [ ] Step 5 (Frontend) — Expand EN/ZH locale files with all labels used in the domain workflow and ensure navigation text matches.
-- [ ] Step 6 (Shared) — Document Aliyun setup requirements (API keys, permissions, rate limits) in `docs/domains.md` and link from README + agent logs.
+- [x] Step 1 (Backend) — Define Pydantic schemas for domain + record requests/responses and enforce body payloads instead of query params.
+- [x] Step 2 (Backend) — Update routers/service layer to use the schemas, add structured logging, and map Aliyun errors to friendly API messages.
+- [x] Step 3 (Backend QA) — Mock Aliyun SDK in pytest to cover list/create/update/delete flows plus error propagation.
+- [x] Step 4 (Frontend) — Implement domain/record management UI (create/edit/delete dialogs, inline validation) using the shared API client.
+- [x] Step 5 (Frontend) — Expand EN/ZH locale files with all labels used in the domain workflow and ensure navigation text matches.
+- [x] Step 6 (Shared) — Document Aliyun setup requirements (API keys, permissions, rate limits) in `docs/domains.md` and link from README + agent logs.
 
 ## Feature 05: System Status & Monitoring Dashboard
-- [ ] Step 1 (Backend) — Design the `/api/status` response contract (cpu, memory, disk, services, timestamps) and extend `/health` with minimal summary data.
-- [ ] Step 2 (Backend) — Implement metrics gathering (psutil or similar), cache responses, and expose service state derived from real processes or placeholders.
-- [ ] Step 3 (Backend QA) — Add pytest coverage with patched system metrics to verify successful responses and error handling.
-- [ ] Step 4 (Frontend) — Build dashboard widgets consuming `/api/status`, including charts/badges, refresh interval controls, and graceful degradation.
-- [ ] Step 5 (Frontend) — Add missing locale strings (`common.status`, `server.cpuUsage`, etc.) and ensure copy renders correctly in both languages.
-- [ ] Step 6 (Shared) — Produce monitoring documentation (data sources, update cadence, troubleshooting) and link it in READMEs + ops notes.
+- [x] Step 1 (Backend) — Design the `/api/status` response contract (cpu, memory, disk, services, timestamps) and extend `/health` with minimal summary data.
+- [x] Step 2 (Backend) — Implement metrics gathering (psutil or similar), cache responses, and expose service state derived from real processes or placeholders.
+- [x] Step 3 (Backend QA) — Add pytest coverage with patched system metrics to verify successful responses and error handling.
+- [x] Step 4 (Frontend) — Build dashboard widgets consuming `/api/status`, including charts/badges, refresh interval controls, and graceful degradation.
+- [x] Step 5 (Frontend) — Add missing locale strings (`common.status`, `server.cpuUsage`, etc.) and ensure copy renders correctly in both languages.
+- [x] Step 6 (Shared) — Produce monitoring documentation (data sources, update cadence, troubleshooting) and link it in READMEs + ops notes.
 
 ## Feature 06: Quality Automation & Process
-- [ ] Step 1 (Backend) — Scaffold pytest config (`tests/` layout, fixtures, sample test) and register command in `pyproject.toml`.
-- [ ] Step 2 (Frontend) — Install and configure testing stack (React Testing Library, Vitest or Jest, optional Playwright) with starter specs.
-- [ ] Step 3 (Shared) — Update pre-commit hooks/CI scripts to run both backend and frontend test suites; document expected commands in README + agent logs.
-- [ ] Step 4 (Shared) — Maintain `agent_chats/` logbook discipline, including references to docs/tests per feature, and outline follow-up tracking process.
+- [x] Step 1 (Backend) — Scaffold pytest config (`tests/` layout, fixtures, sample test) and register command in `pyproject.toml`.
+- [x] Step 2 (Frontend) — Install and configure testing stack (React Testing Library, Vitest or Jest, optional Playwright) with starter specs.
+- [x] Step 3 (Shared) — Update pre-commit hooks/CI scripts to run both backend and frontend test suites; document expected commands in README + agent logs.
+- [x] Step 4 (Shared) — Maintain `agent_chats/` logbook discipline, including references to docs/tests per feature, and outline follow-up tracking process.

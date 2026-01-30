@@ -76,8 +76,11 @@ npm run dev --prefix web
 ## 开发流程
 
 - 每次由智能体或双人编程产生代码改动时，必须在 `agent_chats/YYYYMMDD-HHMMSS-topic.md` 中记录，模板见 `agent_chats/README.md`。
-- 在提交 PR 前运行 `pre-commit run --all-files`，钩子会自动执行 Ruff 检查/格式化（`api/`）以及安装了依赖后的 `npm run lint`（前端）。
-- 完整的工程手册请参考仓库根目录下的 `agents.md`。
+- 在提交 PR 前运行测试：
+  - `pytest -q api/tests`
+  - `npm run test --prefix web`
+- 在提交 PR 前运行 `pre-commit run --all-files`，钩子会自动执行 Ruff 检查/格式化（`api/`）以及安装了依赖后的 `npm run lint`（前端，包含测试）。
+- 完整的工程手册请参考仓库根目录下的 `AGENTS.md`。
 
 ## 环境变量
 
@@ -109,20 +112,31 @@ npm run dev --prefix web
 3. 登录成功后会在本地保存 token，受保护的页面（`/status`、`/upnp`、`/domains`）需要该 token 才能访问。
 4. 当 token 失效或被撤销时，前端会自动退出并跳转回登录页。
 
+更完整的认证生命周期说明请参考 `docs/auth-lifecycle.md`（环境变量、CLI 初始化、登录/退出流程等）。
+
 ## API 接口
+
+### 状态
+- `GET /api/status` - 获取系统状态快照
+- `GET /health` - 健康检查
+
+数据来源、刷新频率与故障排查请参考 `docs/monitoring.md`。
 
 ### UPnP
 - `GET /api/upnp/mappings` - 获取所有端口映射
 - `POST /api/upnp/mappings` - 添加新的端口映射
-- `DELETE /api/upnp/mappings/{id}` - 删除端口映射
+- `DELETE /api/upnp/mappings/{external_port}?protocol=TCP|UDP` - 删除端口映射（默认 `TCP`）
+
+更多路由器前置条件、故障排查与安全注意事项请参考 `docs/upnp.md`。
 
 ### 域名管理
 - `GET /api/domains/domains` - 获取所有域名
-- `POST /api/domains/domains` - 添加新域名
 - `GET /api/domains/domains/{domain}/records` - 获取域名解析记录
 - `POST /api/domains/domains/{domain}/records` - 添加新记录
 - `PUT /api/domains/domains/{domain}/records/{record_id}` - 更新记录
 - `DELETE /api/domains/domains/{domain}/records/{record_id}` - 删除记录
+
+阿里云 DNS 的 AccessKey 配置、最小权限与限流排查请参考 `docs/domains.md`。
 
 ## 许可证
 

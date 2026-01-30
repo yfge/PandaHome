@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
@@ -30,11 +30,12 @@ def create_access_token(
     """创建访问令牌"""
     auth_settings = auth_settings or get_auth_settings()
     to_encode = data.copy()
+    now = datetime.now(timezone.utc)
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = now + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=auth_settings.access_token_expire_minutes)
-    to_encode.update({"exp": expire})
+        expire = now + timedelta(minutes=auth_settings.access_token_expire_minutes)
+    to_encode.update({"exp": int(expire.timestamp())})
     encoded_jwt = jwt.encode(to_encode, auth_settings.secret_key, algorithm=auth_settings.algorithm)
     return encoded_jwt
 

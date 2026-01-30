@@ -6,8 +6,11 @@ const withNextIntl = createNextIntlPlugin();
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['localhost'],
+    remotePatterns: [
+      { protocol: 'http', hostname: 'localhost' },
+      { protocol: 'https', hostname: 'localhost' },
+    ],
   },
 };
 
-module.exports = withNextIntl(nextConfig); 
+module.exports = withNextIntl(nextConfig);

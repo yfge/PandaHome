@@ -77,4 +77,3 @@ def test_non_admin_cannot_list_users(client: TestClient, normal_user: User) -> N
     token = _login(client, "user", "userpass")
     response = client.get("/api/users/", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 403
-

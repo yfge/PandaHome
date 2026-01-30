@@ -46,4 +46,4 @@ class Logger:
         self.logger.warning(message)
 
 # 创建全局日志实例
-logger = Logger("self-host-server") 
+logger = Logger("self-host-server")

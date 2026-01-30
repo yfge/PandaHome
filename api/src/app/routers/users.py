@@ -75,10 +75,10 @@ async def update_user(
     update_data = user_update.dict(exclude_unset=True)
     if "password" in update_data:
         update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
-        
+
     for key, value in update_data.items():
         setattr(db_user, key, value)
-        
+
     db.commit()
     db.refresh(db_user)
     return db_user
@@ -97,7 +97,7 @@ async def delete_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="用户不存在"
         )
-        
+
     db.delete(db_user)
     db.commit()
     return {"status": "success", "message": "用户已删除"}

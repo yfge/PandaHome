@@ -15,4 +15,4 @@ class Response(BaseModel):
     @classmethod
     def error(cls, message: str = "error", code: int = 500):
         """错误响应"""
-        return cls(code=code, message=message) 
+        return cls(code=code, message=message)
