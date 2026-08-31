@@ -19,7 +19,7 @@ repos:
       - id: check-json
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.1
+    rev: v0.16.5
     hooks:
       - id: ruff
         name: ruff (api)
