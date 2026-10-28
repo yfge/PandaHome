@@ -466,7 +466,16 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" onCloseAutoFocus={(event) => {
+                        const active = document.activeElement;
+                        const menu = event.target;
+                        // A delayed menu close must preserve the user's new focus.
+                        if (active instanceof HTMLElement && active !== document.body
+                          && !active.hasAttribute("data-radix-focus-guard")
+                          && !(menu instanceof HTMLElement && menu.contains(active))) {
+                          event.preventDefault();
+                        }
+                      }}>
                         <DropdownMenuItem
                           onSelect={(event) => {
                             event.preventDefault();

@@ -192,6 +192,54 @@ describe("UPnP mapping dialogs", () => {
     expect(focus).toHaveBeenCalledWith({ preventScroll: true });
   });
 
+  it.each(["Edit", "Delete"])("keeps outside focus after the pending %s menu finishes its close animation", async (action) => {
+    const readStyle = window.getComputedStyle.bind(window);
+    vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
+      const style = readStyle(element, pseudo);
+      if (element.getAttribute("data-slot") !== "dropdown-menu-content") return style;
+      return new Proxy(style, { get: (target, key) => key === "animationName"
+        ? element.getAttribute("data-state") === "closed" ? "menu-exit" : "menu-enter"
+        : Reflect.get(target, key) });
+    });
+    const user = userEvent.setup();
+    mount();
+    const actions = await screen.findByRole("button", { name: "Actions for NAS" });
+    const home = screen.getByRole("link", { name: "Home" });
+    await user.click(actions);
+    const menu = await screen.findByRole("menu");
+    await user.click(within(menu).getByRole("menuitem", { name: action }));
+    const dialog = await screen.findByRole("dialog");
+    let finish: (response: Response) => void = () => {};
+    vi.mocked(fetch).mockImplementationOnce(() => new Promise<Response>((resolve) => { finish = resolve; }));
+    await user.click(within(dialog).getByRole("button", { name: action === "Edit" ? "Save" : "Delete" }));
+    expect(actions).toBeDisabled();
+    await user.keyboard("{Escape}");
+    fireEvent.keyDown(menu, { key: "Escape", code: "Escape" });
+    expect(menu).toHaveAttribute("data-state", "closed");
+    home.focus();
+    expect(home).toHaveFocus();
+    finish(new Response(JSON.stringify({ detail: "Gateway unavailable" }), {
+      status: 503, headers: { "Content-Type": "application/json" },
+    }));
+    await waitFor(() => expect(actions).toBeEnabled());
+    expect(home).toHaveFocus();
+    const end = new Event("animationend", { bubbles: true });
+    Object.defineProperty(end, "animationName", { value: "menu-exit" });
+    fireEvent(menu, end);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(home).toHaveFocus();
+  });
+
+  it("preserves the normal menu Escape return to its actions button", async () => {
+    const user = userEvent.setup();
+    mount();
+    const actions = await screen.findByRole("button", { name: "Actions for NAS" });
+    await user.click(actions);
+    await screen.findByRole("menuitem", { name: "Edit" });
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(actions).toHaveFocus());
+  });
+
   it("shows an add failure inside the dialog, keeps the full draft and retries the same request", async () => {
     const user = userEvent.setup();
     mount();
