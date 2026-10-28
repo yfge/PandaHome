@@ -54,7 +54,7 @@ class DnsSync:
             if record.Locked:
                 raise DnsConflict("The matching DNS record is locked; unlock it before changing the public endpoint.")
             service.update_domain_record(
-                domain, record.RecordId, DomainRecordUpdateRequest(type=record_type, value=value)
+                domain, record.RecordId, DomainRecordUpdateRequest(rr=rr, type=record_type, value=value)
             )
         else:
             service.add_domain_record(

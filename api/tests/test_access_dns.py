@@ -2,6 +2,8 @@ import json
 from types import SimpleNamespace
 
 import pytest
+from aliyunsdkalidns.request.v20150109.DescribeDomainRecordsRequest import DescribeDomainRecordsRequest
+from aliyunsdkalidns.request.v20150109.UpdateDomainRecordRequest import UpdateDomainRecordRequest
 
 from src.app.schemas.domains import DomainRecord
 from src.app.services.access.dns import DnsConflict, DnsSync
@@ -94,6 +96,51 @@ async def test_public_ip_change_updates_existing_record_and_then_converges():
     assert (operation, zone, record_id) == ("update", "example.com", "record-1")
     assert payload.type == "A"
     assert payload.value == "1.1.1.1"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "old_type,old_value,target,new_type,new_value",
+    [
+        ("A", "8.8.8.8", "1.1.1.1", "A", "1.1.1.1"),
+        ("AAAA", "2606:4700:4700::1111", "2606:4700:4700::1001", "AAAA", "2606:4700:4700::1001"),
+        ("CNAME", "old-relay.example.net", "New-Relay.EXAMPLE.NET.", "CNAME", "new-relay.example.net"),
+        ("A", "8.8.8.8", "relay.example.net", "CNAME", "relay.example.net"),
+        ("CNAME", "relay.example.net", "1.1.1.1", "A", "1.1.1.1"),
+    ],
+    ids=["ipv4-change", "ipv6-change", "relay-change", "direct-to-relay", "relay-to-direct"],
+)
+async def test_ddns_sdk_update_includes_required_fields_and_skips_repeated_write(
+    monkeypatch, old_type, old_value, target, new_type, new_value
+):
+    rr = "media.nas"
+    current = record("existing-record", rr=rr, record_type=old_type, value=old_value).model_dump()
+    requests = []
+
+    def sdk_transport(request):
+        requests.append(request)
+        if isinstance(request, DescribeDomainRecordsRequest):
+            return json.dumps({"DomainRecords": {"Record": [current]}, "TotalCount": 1}).encode()
+        assert isinstance(request, UpdateDomainRecordRequest), "DDNS must reuse the official SDK update operation"
+        params = request.get_query_params()
+        current.update({key: params[key] for key in ("RR", "Type", "Value") if key in params})
+        return json.dumps({"RecordId": current["RecordId"], "RequestId": "test-request"}).encode()
+
+    provider = AliyunDNSService()
+    monkeypatch.setattr(provider, "_require_client", lambda: SimpleNamespace(do_action_with_exception=sdk_transport))
+    sync = DnsSync(lambda: provider)
+    await sync.sync(service(rr=rr), target)
+    updates = [request for request in requests if isinstance(request, UpdateDomainRecordRequest)]
+    assert len(updates) == 1
+    params = updates[0].get_query_params()
+    assert {key: params.get(key) for key in ("RecordId", "RR", "Type", "Value")} == {
+        "RecordId": "existing-record",
+        "RR": rr,
+        "Type": new_type,
+        "Value": new_value,
+    }
+    await sync.sync(service(rr=rr), target)
+    assert [request for request in requests if isinstance(request, UpdateDomainRecordRequest)] == updates
 
 
 @pytest.mark.asyncio
