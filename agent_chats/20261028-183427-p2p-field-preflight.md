@@ -540,3 +540,34 @@ also linked from own coordination/access-relay-current-status.json and current
 frps-sharing-contract.json. No direct send into independent chat IDs is claimed.
 Blocking data-entry capability is58131/58132 SG ingress, not lack of an off-frps
 client or ECS password. No unknown business port is repurposed to bypass this.
+
+### Access release confirmed again, no recreation
+
+Access reported its real API relay registration/native frpc/nonce/revocation
+runtime diagnostics and cleanup complete, explicitly ECS-loopback58131 only,
+field_public_acceptance=false and TLS enabled without an Access CA-pin claim.
+P2P preserved that classification and Access's separate direct-field PASS. No
+Access/P2P direct or relay diagnostic was rerun.
+
+The valid matching run_id/release_shared_frps/access_frpc_stopped request was
+already written20:15:11, observed by the owned controller20:15:15.652956UTC,
+finally cleanup completed20:15:18.535052 and independent deletion review passed
+20:15:21.629940. This latest notification did not reopen or extend the lease.
+Server/private token/CA configs/handoff remained absent, so there was no new
+resource to delete or unknown process to terminate.
+
+A separate newly executed trusted SSH verifier completed21:09:35UTC, exit0 and
+verified=true: both old lease identities and six later complete-window identities
+were checked by PID+start_ticks, none matching alive. Three exact-owned cloud
+dirs absent; exact-owned-path processes0, allfrps0;8081/58131/58132 unbound in all
+TCP/TCP6/UDP/UDP6 tables. Eight local runtime-private dirs absent, extra runtime
+private dirs0. Passive route-plan/IP metadata files were explicitly preserved;
+they are neither live services nor token/CA directories. The verifier only read
+state, never launched, killed or deleted resources.
+
+New evidence: external access-release-confirmation-20261028T2108Z/
+independent-final-cleanup.json, verify_release.py and release-receipt.json;
+coordination/p2p-frps-release-confirmed.json points peers to the current receipt.
+Lifecycle remains P2P-exclusive. No product, shared task/doc/build/index/stage/
+commit, SG/firewall/route or existing service changed. No direct independent-chat
+message send is claimed; the artifact and final reply supply the release receipt.
