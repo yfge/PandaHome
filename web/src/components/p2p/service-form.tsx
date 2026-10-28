@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,12 +10,17 @@ import { useP2pTranslations } from "@/components/p2p/translations";
 interface ServiceFormProps {
   initial?: P2pServiceDraft;
   busy: boolean;
+  error?: string | null;
   onSave: (draft: P2pServiceDraft) => Promise<void>;
   onCancel: () => void;
 }
 
-export function ServiceForm({ initial, busy, onSave, onCancel }: ServiceFormProps) {
+export function ServiceForm({ initial, busy, error, onSave, onCancel }: ServiceFormProps) {
   const t = useP2pTranslations();
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
   const [draft, setDraft] = useState<P2pServiceDraft>(initial ?? {
     name: "", local_ip: "127.0.0.1", local_port: 8080, enabled: true, fallback_enabled: true,
   });
@@ -59,6 +64,7 @@ export function ServiceForm({ initial, busy, onSave, onCancel }: ServiceFormProp
           </label>
           <p id="p2p-fallback-help" className="text-muted-foreground text-sm">{t("fallbackHelp")}</p>
         </div>
+        {error ? <p ref={errorRef} role="alert" tabIndex={-1} className="text-destructive rounded-md border border-destructive/30 p-3 text-sm">{error}</p> : null}
         <div className="flex flex-wrap gap-2">
           <Button type="submit" disabled={!draft.name.trim()}>{busy ? t("working") : t("save")}</Button>
           <Button type="button" variant="outline" onClick={onCancel}>{t("cancel")}</Button>

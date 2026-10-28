@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +12,7 @@ interface ServiceCardProps {
   service: P2pService;
   busy: boolean;
   providerReady: boolean;
-  onEdit: () => void;
+  onEdit: (trigger: HTMLButtonElement) => void;
   onToggle: () => void;
   onDelete: () => void;
   onRotate: () => void;
@@ -23,6 +23,17 @@ export function ServiceCard({ service, busy, providerReady, onEdit, onToggle, on
   const t = useP2pTranslations();
   const [bindPort, setBindPort] = useState("18080");
   const [confirmation, setConfirmation] = useState<"delete" | "rotate" | null>(null);
+  const confirmationTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const restoreConfirmationFocusRef = useRef(false);
+  const closeConfirmation = () => {
+    restoreConfirmationFocusRef.current = true;
+    setConfirmation(null);
+  };
+  useEffect(() => {
+    if (confirmation || busy || !restoreConfirmationFocusRef.current) return;
+    restoreConfirmationFocusRef.current = false;
+    confirmationTriggerRef.current?.focus({ preventScroll: true });
+  }, [confirmation, busy]);
   const port = Number(bindPort);
   const portValid = Number.isInteger(port) && port >= 1 && port <= 65535;
   const id = `p2p-visitor-${service.id}`;
@@ -39,20 +50,20 @@ export function ServiceCard({ service, busy, providerReady, onEdit, onToggle, on
         </div>
         <p className="text-muted-foreground text-sm">{t("unknownPath")} · {t(service.fallback_enabled ? "relayOn" : "relayOff")}</p>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" disabled={busy} onClick={onEdit}>{t("edit")}</Button>
+          <Button variant="outline" size="sm" disabled={busy} onClick={(event) => onEdit(event.currentTarget)}>{t("edit")}</Button>
           <Button variant="outline" size="sm" disabled={busy} onClick={onToggle}>{t(service.enabled ? "disable" : "enable")}</Button>
-          <Button variant="outline" size="sm" disabled={busy} onClick={() => setConfirmation("rotate")}>{t("rotate")}</Button>
-          <Button variant="destructive" size="sm" disabled={busy} onClick={() => setConfirmation("delete")}>{t("delete")}</Button>
+          <Button variant="outline" size="sm" disabled={busy} onClick={(event) => { confirmationTriggerRef.current = event.currentTarget; setConfirmation("rotate"); }}>{t("rotate")}</Button>
+          <Button variant="destructive" size="sm" disabled={busy} onClick={(event) => { confirmationTriggerRef.current = event.currentTarget; setConfirmation("delete"); }}>{t("delete")}</Button>
         </div>
         {confirmation ? (
           <div className="bg-muted space-y-3 rounded-md p-3" role="group" aria-label={t(confirmation === "delete" ? "deleteConfirm" : "rotateConfirm")}>
             <p className="text-sm">{t(confirmation === "delete" ? "deleteConfirm" : "rotateConfirm")}</p>
             <div className="flex gap-2">
               <Button variant={confirmation === "delete" ? "destructive" : "default"} size="sm" disabled={busy}
-                onClick={() => { if (confirmation === "delete") onDelete(); else onRotate(); setConfirmation(null); }}>
+                onClick={() => { if (confirmation === "delete") onDelete(); else onRotate(); closeConfirmation(); }}>
                 {t(confirmation === "delete" ? "deleteAction" : "rotateAction")}
               </Button>
-              <Button variant="outline" size="sm" disabled={busy} onClick={() => setConfirmation(null)}>{t("cancel")}</Button>
+              <Button variant="outline" size="sm" disabled={busy} onClick={closeConfirmation}>{t("cancel")}</Button>
             </div>
           </div>
         ) : null}

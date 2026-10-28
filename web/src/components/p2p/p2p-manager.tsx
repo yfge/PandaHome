@@ -29,6 +29,28 @@ export function P2pManager() {
   const [editor, setEditor] = useState<P2pService | "new" | null>(null);
   const lifecycle = useRef<AbortController | null>(null);
   const locked = useRef(false);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
+  const editorTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const restoreEditorFocusRef = useRef(false);
+
+  const closeEditor = () => {
+    restoreEditorFocusRef.current = true;
+    setEditor(null);
+  };
+
+  const openEditor = (value: P2pService | "new", trigger: HTMLButtonElement) => {
+    editorTriggerRef.current = trigger;
+    setError(null);
+    setEditor(value);
+  };
+
+  useEffect(() => {
+    if (editor || busy || !restoreEditorFocusRef.current) return;
+    restoreEditorFocusRef.current = false;
+    const trigger = editorTriggerRef.current;
+    const target = trigger?.isConnected ? trigger : addButtonRef.current;
+    target?.focus({ preventScroll: true });
+  }, [editor, busy]);
 
   const reload = useCallback(async (signal: AbortSignal) => {
     const data = await p2pRequest<P2pSnapshot>(P2P_ENDPOINT, { signal, cache: "no-store" });
@@ -72,7 +94,7 @@ export function P2pManager() {
     const saved = await perform((signal) => p2pRequest(endpoint, {
       method: editor === "new" ? "POST" : "PUT", body: draft, signal,
     }));
-    if (saved) setEditor(null);
+    if (saved) closeEditor();
   };
 
   const provider = snapshot?.provider;
@@ -111,14 +133,15 @@ export function P2pManager() {
         </CardContent>
       </Card>
       {busy ? <p role="status" className="text-muted-foreground text-sm">{t("working")}</p> : null}
-      {error ? <p role="alert" className="text-destructive text-sm">{error}</p> : null}
+      {error && !editor ? <p role="alert" className="text-destructive text-sm">{error}</p> : null}
       {editor ? <ServiceForm key={editor === "new" ? "new" : editor.id} initial={editor === "new" ? undefined : editor}
-        busy={busy} onSave={save} onCancel={() => setEditor(null)} /> : <Button disabled={busy} onClick={() => setEditor("new")}>{t("add")}</Button>}
+        busy={busy} error={error} onSave={save} onCancel={() => { setError(null); closeEditor(); }} /> :
+        <Button ref={addButtonRef} disabled={busy} onClick={(event) => openEditor("new", event.currentTarget)}>{t("add")}</Button>}
       {snapshot?.services.length === 0 ? <p className="text-muted-foreground text-sm">{t("empty")}</p> : null}
       <div className="grid gap-4 xl:grid-cols-2">
         {snapshot?.services.map((service) => (
           <ServiceCard key={service.id} service={service} busy={busy || !!editor} providerReady={!!provider?.configured && !!provider.available}
-            onEdit={() => setEditor(service)}
+            onEdit={(trigger) => openEditor(service, trigger)}
             onToggle={() => void perform((signal) => p2pRequest(serviceEndpoint(service.id), { method: "PUT", body: { name: service.name, local_ip: service.local_ip, local_port: service.local_port, enabled: !service.enabled, fallback_enabled: service.fallback_enabled }, signal }))}
             onDelete={() => void perform((signal) => p2pRequest(serviceEndpoint(service.id), { method: "DELETE", signal }))}
             onRotate={() => void perform((signal) => p2pRequest(`${serviceEndpoint(service.id)}/rotate-key`, { method: "POST", signal }))}

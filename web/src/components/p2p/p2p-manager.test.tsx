@@ -19,8 +19,8 @@ function response(data: unknown, status = 200) {
   });
 }
 
-function mount() {
-  return render(<NextIntlClientProvider locale="en" messages={{}} timeZone="Asia/Shanghai"><P2pManager /></NextIntlClientProvider>);
+function mount(locale = "en") {
+  return render(<NextIntlClientProvider locale={locale} messages={{}} timeZone="Asia/Shanghai"><P2pManager /></NextIntlClientProvider>);
 }
 
 describe("private P2P service management", () => {
@@ -139,8 +139,79 @@ describe("private P2P service management", () => {
     await user.type(screen.getByLabelText("Name"), "Updated app");
     fetchMock.mockResolvedValueOnce(response("Name already exists", 409));
     await user.click(screen.getByRole("button", { name: "Save service" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Name already exists");
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Name already exists");
+    expect(screen.getByRole("button", { name: "Save service" }).closest("form")).toContainElement(alert);
+    expect(alert).toHaveFocus();
     expect(screen.getByLabelText("Name")).toHaveValue("Updated app");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Edit" })).toHaveFocus());
+  });
+
+  it.each([
+    { locale: "en", add: "Add service", name: "Name", ip: "Home service IPv4 address", port: "Home service port", fallback: "Allow relay fallback", save: "Save service" },
+    { locale: "zh", add: "添加服务", name: "名称", ip: "家庭服务 IPv4 地址", port: "家庭服务端口", fallback: "允许中转兜底", save: "保存服务" },
+  ])("preserves a failed POST draft and retries from the form in $locale", async (labels) => {
+    const user = userEvent.setup();
+    mount(labels.locale);
+    await screen.findByText("Home app");
+    await user.click(screen.getByRole("button", { name: labels.add }));
+    await user.type(screen.getByLabelText(labels.name), "Retry app");
+    await user.clear(screen.getByLabelText(labels.ip));
+    await user.type(screen.getByLabelText(labels.ip), "192.168.1.10");
+    await user.clear(screen.getByLabelText(labels.port));
+    await user.type(screen.getByLabelText(labels.port), "9090");
+    await user.click(screen.getByLabelText(labels.fallback));
+    fetchMock.mockResolvedValueOnce(response("Coordinator unavailable", 503));
+    await user.click(screen.getByRole("button", { name: labels.save }));
+    const alert = await screen.findByRole("alert");
+    const save = screen.getByRole("button", { name: labels.save });
+    expect(save.closest("form")).toContainElement(alert);
+    expect(alert).toHaveTextContent("Coordinator unavailable");
+    expect(alert).toHaveFocus();
+    expect(save).toBeEnabled();
+    expect(screen.getByLabelText(labels.name)).toHaveValue("Retry app");
+    expect(screen.getByLabelText(labels.ip)).toHaveValue("192.168.1.10");
+    expect(screen.getByLabelText(labels.port)).toHaveValue(9090);
+    expect(screen.getByLabelText(labels.fallback)).not.toBeChecked();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const draft = { name: "Retry app", local_ip: "192.168.1.10", local_port: 9090, enabled: true, fallback_enabled: false };
+    const created = { ...snapshot.services[0], ...draft, id: 2 };
+    fetchMock.mockResolvedValueOnce(response(created));
+    fetchMock.mockResolvedValueOnce(response({ ...snapshot, services: [...snapshot.services, created] }));
+    await user.click(save);
+    expect(await screen.findByText("Retry app")).toBeInTheDocument();
+    expect(screen.queryByLabelText(labels.name)).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    for (const index of [1, 2]) {
+      const [url, request] = fetchMock.mock.calls[index];
+      expect(url).toMatch(/\/api\/p2p\/services$/);
+      expect(request.method).toBe("POST");
+      expect(JSON.parse(request.body)).toEqual(draft);
+    }
+    await waitFor(() => expect(screen.getByRole("button", { name: labels.add })).toHaveFocus());
+  });
+
+  it.each(["Add service", "Edit"])("restores the %s opener after cancelling the editor", async (name) => {
+    const user = userEvent.setup();
+    mount();
+    await screen.findByText("Home app");
+    await user.click(screen.getByRole("button", { name }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.getByRole("button", { name })).toHaveFocus());
+    expect(screen.queryByRole("button", { name: "Save service" })).not.toBeInTheDocument();
+  });
+
+  it.each(["Delete", "Rotate access key"])("restores %s when its confirmation is cancelled", async (name) => {
+    const user = userEvent.setup();
+    mount();
+    await screen.findByText("Home app");
+    const trigger = screen.getByRole("button", { name });
+    await user.click(trigger);
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(trigger).toHaveFocus());
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("closes a persisted edit even if the following refresh fails", async () => {
