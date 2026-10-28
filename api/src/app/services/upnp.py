@@ -7,6 +7,7 @@ import socket
 import time
 from enum import Enum
 from typing import Any
+from urllib.parse import urlsplit
 
 import aiohttp
 import netifaces
@@ -359,7 +360,7 @@ class UPNPService:
             device_url = device_info.get("LOCATION", "")
             if not device_url:
                 continue
-            if gateway_ip not in device_url:
+            if urlsplit(device_url).hostname != gateway_ip:
                 continue
 
             logger.info(f"正在创建设备对象: {device_url}")
@@ -376,6 +377,21 @@ class UPNPService:
             return wan_ip_service
 
         raise UPNPServiceError(UPNPErrorCode.UNAVAILABLE, "未找到可用的网关设备")
+
+    async def get_external_ip(self) -> str | None:
+        """Read WAN addressing independently of optional mapping enumeration."""
+        service = await self._get_gateway_wan_service()
+        result = await service.async_call_action("GetExternalIPAddress")
+        return result.get("NewExternalIPAddress")
+
+    async def gateway_service(self):
+        """Expose the existing discovered WAN service for managed mapping actions."""
+        return await self._get_gateway_wan_service()
+
+    def invalidate_mappings_cache(self) -> None:
+        """Discard mapping snapshots after a managed change without enumerating again."""
+        self._mappings_cache = None
+        self._last_mappings_update = 0
 
     async def _update_mappings_cache(self) -> None:
         """更新端口映射缓存"""
