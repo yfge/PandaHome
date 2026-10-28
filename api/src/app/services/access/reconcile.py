@@ -3,6 +3,7 @@
 import asyncio
 import time
 from datetime import datetime, timezone
+from ipaddress import IPv4Address
 
 from ...schemas.access import ServiceConfig
 from ..relay import RelayMapping
@@ -94,6 +95,16 @@ class ServiceReconciler:
     def relay_mapping(row) -> RelayMapping:
         return RelayMapping(row.id, row.local_ip, row.local_port, row.public_port, row.protocol)
 
+    @staticmethod
+    def _direct_host(network) -> str | None:
+        try:
+            gateway = IPv4Address(network.gateway_external_ip or "")
+        except ValueError:
+            return network.observed_public_ip
+        if gateway.is_global and not gateway.is_multicast:
+            return str(gateway)
+        return network.observed_public_ip
+
     async def check(self, db, row, network, *, relay_ready: bool = False) -> None:
         mode = (row.runtime or {}).get("active_mode")
         if mode == "relay":
@@ -106,7 +117,7 @@ class ServiceReconciler:
                 return
             host = state["public_host"]
         else:
-            host = network.observed_public_ip
+            host = self._direct_host(network)
         try:
             dns_status = await self.dns.sync(row, host)
         except Exception:

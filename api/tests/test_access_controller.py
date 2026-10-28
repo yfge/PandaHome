@@ -124,6 +124,151 @@ def runtime(harness, service_id):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("with_domain", [False, True])
+async def test_explicit_direct_uses_gateway_wan_when_observed_egress_differs(harness, with_domain):
+    service_id, _ = add_service(
+        harness, mode="direct", **({"domain": "example.com", "rr": "home"} if with_domain else {})
+    )
+    harness.detector.detect.return_value = report().model_copy(
+        update={
+            "topology": "upstream_nat",
+            "recommended_mode": "relay",
+            "gateway_external_ip": "8.8.4.4",
+            "reason_code": "public_ip_mismatch",
+        }
+    )
+
+    await harness.controller.reconcile()
+
+    endpoint_host = "home.example.com" if with_domain else "8.8.4.4"
+    state = runtime(harness, service_id)
+    assert state["active_mode"] == "direct"
+    assert state["public_endpoint"] == f"{endpoint_host}:18080"
+    assert state["status"] == "pending"
+    assert state["reason_code"] == "inbound_unverified"
+    assert state["external_verified"] is False
+    assert harness.dns.sync.await_args.args[1] == "8.8.4.4"
+    harness.health.external.assert_awaited_once_with(endpoint_host, 18080, "TCP")
+    harness.mappings.ensure.assert_awaited_once()
+    harness.relay.apply.assert_awaited_once_with([])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("gateway", "topology", "recommended", "reason"),
+    [
+        (None, "unknown", "unknown", "gateway_ip_unavailable"),
+        ("192.168.1.1", "upstream_nat", "relay", "gateway_private_address"),
+        ("100.64.0.1", "cgnat", "relay", "gateway_shared_address"),
+        ("224.0.0.1", "unknown", "unknown", "gateway_address_not_global"),
+        ("2001:4860::8888", "unknown", "unknown", "gateway_ip_unavailable"),
+        ("invalid", "unknown", "unknown", "gateway_ip_unavailable"),
+    ],
+)
+async def test_explicit_direct_keeps_observed_fallback_without_global_unicast_wan(
+    harness, gateway, topology, recommended, reason
+):
+    service_id, _ = add_service(harness, mode="direct")
+    harness.detector.detect.return_value = report().model_copy(
+        update={
+            "gateway_external_ip": gateway,
+            "topology": topology,
+            "recommended_mode": recommended,
+            "reason_code": reason,
+        }
+    )
+
+    await harness.controller.reconcile()
+
+    state = runtime(harness, service_id)
+    assert state["active_mode"] == "direct"
+    assert state["public_endpoint"] == "8.8.8.8:18080"
+    assert state["external_verified"] is False
+    assert harness.dns.sync.await_args.args[1] == "8.8.8.8"
+    harness.health.external.assert_awaited_once_with("8.8.8.8", 18080, "TCP")
+
+
+@pytest.mark.asyncio
+async def test_auto_global_wan_mismatch_keeps_conservative_relay_recommendation(harness):
+    service_id, _ = add_service(harness)
+    harness.detector.detect.return_value = report().model_copy(
+        update={
+            "topology": "upstream_nat",
+            "recommended_mode": "relay",
+            "gateway_external_ip": "8.8.4.4",
+            "reason_code": "public_ip_mismatch",
+        }
+    )
+
+    await harness.controller.reconcile()
+
+    state = runtime(harness, service_id)
+    assert state["active_mode"] == "relay"
+    assert state["public_endpoint"] == "relay.example.com:18080"
+    assert state["external_verified"] is False
+    harness.mappings.ensure.assert_not_called()
+    assert harness.dns.sync.await_args.args[1] == "relay.example.com"
+    harness.health.external.assert_awaited_once_with("relay.example.com", 18080, "TCP")
+
+
+@pytest.mark.asyncio
+async def test_explicit_relay_keeps_relay_host_when_gateway_has_global_wan(harness):
+    service_id, _ = add_service(harness, mode="relay")
+
+    await harness.controller.reconcile()
+
+    assert runtime(harness, service_id)["public_endpoint"] == "relay.example.com:18080"
+    assert harness.dns.sync.await_args.args[1] == "relay.example.com"
+    harness.health.external.assert_awaited_once_with("relay.example.com", 18080, "TCP")
+    harness.mappings.ensure.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_direct_ddns_tracks_gateway_wan_while_observed_egress_stays_fixed(harness):
+    service_id, _ = add_service(harness, mode="direct", domain="example.com", rr="home")
+    for gateway in ("8.8.4.4", "1.1.1.1"):
+        harness.detector.detect.return_value = report().model_copy(
+            update={
+                "topology": "upstream_nat",
+                "recommended_mode": "relay",
+                "gateway_external_ip": gateway,
+                "reason_code": "public_ip_mismatch",
+            }
+        )
+        await harness.controller.reconcile()
+
+    assert [entry.args[1] for entry in harness.dns.sync.await_args_list] == ["8.8.4.4", "1.1.1.1"]
+    assert runtime(harness, service_id)["public_endpoint"] == "home.example.com:18080"
+    assert runtime(harness, service_id)["external_verified"] is False
+    assert harness.health.external.await_count == 2
+    assert harness.mappings.ensure.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_direct_keeps_observed_evidence_requirement_even_with_global_gateway(harness):
+    service_id, _ = add_service(harness, mode="direct")
+    harness.detector.detect.return_value = report(observed=None).model_copy(
+        update={
+            "topology": "unknown",
+            "recommended_mode": "unknown",
+            "gateway_external_ip": "8.8.4.4",
+            "reason_code": "public_ip_unavailable",
+        }
+    )
+
+    await harness.controller.reconcile()
+
+    state = runtime(harness, service_id)
+    assert state["status"] == "needs_setup"
+    assert state["reason_code"] == "direct_unavailable"
+    assert state["public_endpoint"] is None
+    assert state["external_verified"] is False
+    harness.mappings.ensure.assert_not_called()
+    harness.dns.sync.assert_not_called()
+    harness.health.external.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_direct_candidate_requires_external_verification(harness):
     service_id, spec = add_service(harness)
 
