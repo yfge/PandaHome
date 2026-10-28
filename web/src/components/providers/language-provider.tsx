@@ -24,6 +24,10 @@ export function LanguageProvider({
   const [messages, setMessages] = useState<AbstractIntlMessages>(initialMessages);
 
   useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
+
+  useEffect(() => {
     // 从 localStorage 获取保存的语言设置
     const savedLocale = localStorage.getItem("locale");
     if (savedLocale) {
