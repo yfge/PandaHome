@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,13 @@ export function ServiceForm({ service, busy, error, relayAvailable, onClose, onC
   const t = useTranslations("access");
   const [draft, setDraft] = useState<ServiceDraft>(service ? { ...service } : { ...INITIAL_DRAFT });
   const [validation, setValidation] = useState<string | null>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (validation) errorRef.current?.focus();
+  }, [validation]);
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
   const update = <K extends keyof ServiceDraft>(key: K, value: ServiceDraft[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));
     setValidation(null);
@@ -142,7 +149,7 @@ export function ServiceForm({ service, busy, error, relayAvailable, onClose, onC
               </div>
             </details>
           </fieldset>
-          {validation || error ? <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{validation ? t(`validation.${validation}`) : error}</p> : null}
+          {validation || error ? <p ref={errorRef} role="alert" tabIndex={-1} className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{validation ? t(`validation.${validation}`) : error}</p> : null}
           <p className="text-xs text-muted-foreground">{t("publishNotice")}</p>
           <DialogFooter>
             <Button type="button" variant="outline" disabled={busy} onClick={onClose}>{t("cancel")}</Button>

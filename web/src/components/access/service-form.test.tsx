@@ -46,6 +46,21 @@ describe("public service form", () => {
     </NextIntlClientProvider>);
     await userEvent.click(screen.getByRole("button", { name: "Save and maintain" }));
     expect(screen.getByRole("alert")).toHaveTextContent("Enter a name you can recognize.");
+    expect(screen.getByRole("alert")).toHaveFocus();
     expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it("lets users correct validation without refocusing an earlier save error", async () => {
+    const user = userEvent.setup();
+    render(<NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+      <ServiceForm service={null} busy={false} error="Relay unavailable" relayAvailable={false} onClose={vi.fn()} onSave={vi.fn()} />
+    </NextIntlClientProvider>);
+    await user.click(screen.getByRole("button", { name: "Save and maintain" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter a name you can recognize.");
+    const name = screen.getByLabelText(messages.access.name);
+    await user.type(name, "Family photos");
+    expect(name).toHaveValue("Family photos");
+    expect(name).toHaveFocus();
+    expect(screen.getByRole("alert")).toHaveTextContent("Relay unavailable");
   });
 });

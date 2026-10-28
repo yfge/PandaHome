@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import Link from "next/link";
@@ -53,6 +53,24 @@ beforeEach(() => { vi.mocked(accessRequest).mockResolvedValue(undefined); });
 afterEach(() => { cleanup(); vi.resetAllMocks(); });
 
 describe.each(["en", "zh"] as const)("public dialog keyboard focus (%s)", (locale) => {
+  it.each(["add", "edit", "delete"] as const)("restores %s focus before the next keyboard event", async (entry) => {
+    const user = userEvent.setup();
+    const t = renderPage(locale);
+    const trigger = screen.getByRole("button", { name: entry === "add" ? t.addService : t[entry] });
+    await tabTo(user, trigger);
+    await user.keyboard("{Enter}");
+    const dialog = await screen.findByRole("dialog");
+
+    fireEvent.keyDown(dialog, { key: "Escape", code: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    await user.tab({ shift: entry === "delete" });
+    const next = screen.getByRole("button", { name: entry === "add" ? "Network details" : entry === "edit" ? t.delete : t.edit });
+    expect(next).toHaveFocus();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(next).toHaveFocus();
+  });
+
   it.each([
     ["header", "escape"], ["header", "cancel"],
     ["empty", "escape"], ["empty", "cancel"],
@@ -105,5 +123,40 @@ describe.each(["en", "zh"] as const)("public dialog keyboard focus (%s)", (local
     await waitFor(() => expect(trigger).not.toBeInTheDocument());
     await waitFor(() => expect(add).toHaveFocus());
     expect(accessRequest).toHaveBeenCalledWith("/services/1", expect.objectContaining({ method: "DELETE" }));
+  });
+
+  it.each(["add", "edit"] as const)("keeps %s failures in the form, retains the draft and restores focus after retry", async (entry) => {
+    const user = userEvent.setup();
+    const t = renderPage(locale);
+    vi.mocked(accessRequest).mockRejectedValueOnce(new Error("Relay unavailable"));
+    const trigger = screen.getByRole("button", { name: entry === "add" ? t.addService : t.edit });
+    await tabTo(user, trigger);
+    await user.keyboard("{Enter}");
+    const dialog = await screen.findByRole("dialog");
+    const name = within(dialog).getByLabelText(t.name);
+    await user.clear(name);
+    await user.type(name, "Family photos");
+    if (entry === "add") await user.type(within(dialog).getByLabelText(t.localIp), "192.168.1.10");
+    const save = within(dialog).getByRole("button", { name: t.save });
+    await tabTo(user, save);
+    await user.keyboard("{Enter}");
+
+    const alert = await within(dialog).findByRole("alert");
+    expect(alert).toHaveTextContent("Relay unavailable");
+    await waitFor(() => expect(alert).toHaveFocus());
+    expect(dialog.querySelector("form")).toContainElement(document.activeElement as HTMLElement);
+    expect(name).toHaveValue("Family photos");
+    expect(within(dialog).getByLabelText(t.localIp)).toHaveValue("192.168.1.10");
+    expect(save).toBeEnabled();
+
+    await tabTo(user, save);
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await waitFor(() => expect(trigger).toHaveFocus());
+    expect(accessRequest).toHaveBeenCalledTimes(2);
+    expect(accessRequest).toHaveBeenLastCalledWith(entry === "add" ? "/services" : "/services/1", expect.objectContaining({
+      method: entry === "add" ? "POST" : "PUT",
+      body: expect.objectContaining({ name: "Family photos", local_ip: "192.168.1.10" }),
+    }));
   });
 });

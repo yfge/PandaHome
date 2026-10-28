@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -32,13 +32,21 @@ export function AccessPageClient() {
   const actionControllers = useRef(new Set<AbortController>());
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const formTriggerRef = useRef<HTMLElement | null>(null);
+  const formWasOpenRef = useRef(false);
   const deleteTriggerRef = useRef<HTMLElement | null>(null);
+  const deleteWasOpenRef = useRef(false);
 
-  const restoreFocus = (event: Event, trigger: HTMLElement | null) => {
-    event.preventDefault();
+  const focusTrigger = useCallback((trigger: HTMLElement | null) => {
     const target = trigger?.isConnected ? trigger : addButtonRef.current;
     target?.focus({ preventScroll: true });
-  };
+  }, []);
+  useLayoutEffect(() => {
+    // Restore before another Tab; Radix's deferred callback must not steal it back.
+    if (formWasOpenRef.current && !formOpen) focusTrigger(formTriggerRef.current);
+    if (deleteWasOpenRef.current && !deleting) focusTrigger(deleteTriggerRef.current);
+    formWasOpenRef.current = formOpen;
+    deleteWasOpenRef.current = Boolean(deleting);
+  }, [formOpen, deleting, focusTrigger]);
 
   useEffect(() => {
     const controllers = actionControllers.current;
@@ -155,9 +163,9 @@ export function AccessPageClient() {
           )}
         </section>
       </> : null}
-      {formOpen ? <ServiceForm service={editing} busy={saving} error={formError} relayAvailable={data?.relay.available ?? false} onClose={() => setFormOpen(false)} onCloseAutoFocus={(event) => restoreFocus(event, formTriggerRef.current)} onSave={save} /> : null}
-      <Dialog open={Boolean(deleting)} onOpenChange={(open) => { if (!open && busyId === null) setDeleting(null); }}>
-        <DialogContent onCloseAutoFocus={(event) => restoreFocus(event, deleteTriggerRef.current)}>
+      {formOpen ? <ServiceForm service={editing} busy={saving} error={formError} relayAvailable={data?.relay.available ?? false} onClose={() => setFormOpen(false)} onCloseAutoFocus={(event) => event.preventDefault()} onSave={save} /> : null}
+      {deleting ? <Dialog open onOpenChange={(open) => { if (!open && busyId === null) setDeleting(null); }}>
+        <DialogContent onCloseAutoFocus={(event) => event.preventDefault()}>
           <DialogHeader>
             <DialogTitle>{t("deleteTitle")}</DialogTitle>
             <DialogDescription>{t("deleteDescription", { name: deleting?.name ?? "" })}</DialogDescription>
@@ -166,7 +174,7 @@ export function AccessPageClient() {
             <Button variant="destructive" disabled={busyId !== null} onClick={() => void remove()}>{t(busyId !== null ? "deleting" : "delete")}</Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog> : null}
     </div>
   );
 }
