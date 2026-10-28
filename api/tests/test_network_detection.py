@@ -236,3 +236,9 @@ async def test_discovered_gateway_requires_exact_host_match():
     upnp.find_wan_ip_service = Mock(return_value=action)
     assert await upnp.gateway_service() is action
     upnp.upnp.async_create_device.assert_awaited_once_with("http://192.168.1.1:1900/description.xml")
+
+
+@pytest.mark.parametrize("kind", ["WANIPConnection:2", "WANPPPConnection:1"])
+def test_automatic_detection_reuses_supported_gateway_services(kind):
+    service = SimpleNamespace(service_type=f"urn:schemas-upnp-org:service:{kind}")
+    assert UPNPService().find_wan_ip_service(SimpleNamespace(all_services=[service])) is service

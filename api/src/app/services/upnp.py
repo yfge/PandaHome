@@ -16,6 +16,7 @@ from async_upnp_client.client_factory import UpnpFactory
 from async_upnp_client.search import async_search
 
 from .logger import logger
+from .upnp_gateway import GatewayError, find_wan_service
 
 
 class UPNPErrorCode(str, Enum):
@@ -326,27 +327,13 @@ class UPNPService:
             raise UPNPServiceError(UPNPErrorCode.INVALID_LEASE_DURATION, "lease_duration 不能为负数")
 
     def find_wan_ip_service(self, device):
-        """递归查找WANIPConnection服务"""
+        """Reuse the gateway domain's supported IGD service selection."""
         if not device:
             return None
-
-        # 检查当前设备的服务
-        for service in device.services.values():
-            if service.service_type == "urn:schemas-upnp-org:service:WANIPConnection:1":
-                return service
-
-        # 检查嵌入式设备
-        if hasattr(device, 'embedded_devices'):
-            for embedded_device in device.embedded_devices.values():
-                logger.info(f"检查嵌入式设备: {embedded_device.device_type}")
-                logger.info(f"嵌入式设备服务: {[s.service_type for s in embedded_device.services.values()]}")
-
-                # 递归检查嵌入式设备
-                service = self.find_wan_ip_service(embedded_device)
-                if service:
-                    return service
-
-        return None
+        try:
+            return find_wan_service(device)
+        except GatewayError:
+            return None
 
     async def _get_gateway_wan_service(self):
         self._check_initialized()
