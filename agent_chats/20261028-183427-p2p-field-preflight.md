@@ -497,3 +497,46 @@ exit0/noSSH/no.private/no services. Independent reviewer confirmed final
 2e868cc8 minor SSH-file ownership hardening without weakened gates. Index
 observed empty; P2P performed no staging/commit. Route proposal remains
 unapproved and unexecuted; PM-only decision handoff is ready.
+
+### Latest Access public-relay status, read-only
+
+Latest user reports Access physical direct business4/4 and cleanup passed at
+fe17a0f/active-20261028-195637Z-d5d4f8. P2P preserved that owner result and did
+not rerun direct, STCP or XTCP. Prior cross-NAT direct failures remain unaccepted.
+Current request was status/SG/client capability only: no frps restart, route
+change, network-security write, shared build/index/stage/commit was performed.
+
+Real trusted SSH snapshot21:04:56UTC exited0: no frps processes, no exact-owned
+path processes; known p2p/p2p-complete/p2p-route cloud dirs absent;8081/58131/
+58132 unbound in TCP/TCP6/UDP/UDP6. Old private Access handoff remains deleted;
+no token/CA was regenerated. Lifecycle remains exclusively with P2P; Access
+would own only its separate frpc/config/state. Historical public8081 native
+TLS login is retained, while SSH-only58330 is never offered as public relay.
+
+Existing Aliyun CLI config remained usable, DescribeInstances identified the
+same one Running VPC ECS by exact trusted SSH IP. Initial SG helper accidentally
+used unsupported PageSize/PageNumber flags. Local official CLI help exposes
+MaxResults/NextToken for this API; v2 corrected pagination and exhausted all
+attached-group ingress pages, exit0. The failed attempt is preserved as a helper
+error, not interpreted as missing credentials or a network/SG failure. Latest
+SG read showsTCP8081 public-any Accept; TCP/UDP58131 and58132 have no matching
+ingress Accept. No SG, firewall, listener or business port was changed. This
+capability conclusion does not itself prove effective public data ingress.
+
+Independent topology review confirms existing Mac is an executable off-frps
+client, even if it also hosts app/provider/frpc. Historical native public8081
+login remote80eb73a95266 (darwin/arm64) differs from cloud7309b30197e6. Historical
+Access58131 workConn also used80eb but its userConn was cloudloopback12ca17b49af2,
+so that relay join is not public data-port acceptance. Future actual API relay
+must send a nonce HTTP request from Mac with proxy variables disabled, record
+frps userConn/guest incoming path identifying an off-frps egress, and reconcile
+API mapping/frpc/app nonce. ECS calling its own public IP is retained only as
+hairpin/cloud-local evidence. Mac Docker VM is not an additional independent
+external host. No other third authorized execution machine is confirmed.
+
+Own raw-command/status/SG/client-review evidence and peer-readable handoff are
+in external access-relay-status-20261028T2103Z/, with entry handoff.json. It is
+also linked from own coordination/access-relay-current-status.json and current
+frps-sharing-contract.json. No direct send into independent chat IDs is claimed.
+Blocking data-entry capability is58131/58132 SG ingress, not lack of an off-frps
+client or ECS password. No unknown business port is repurposed to bypass this.
