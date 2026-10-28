@@ -5,11 +5,16 @@
 Owners: Access (public application chain, resource ledger and final shared delivery),
 UPnP (physical-router ingress), P2P (direct traversal between separate networks).
 PM coordinates and independently reviews; owners implement and submit their work.
-Current state: live capability preflight in progress; no field check has passed.
+Current state: committed-source direct application and physical TCP/UDP transport passed;
+public relay ingress and native P2P direct remain unpassed. All current run-owned
+resources are removed and independently verified; original-39 baseline drift
+remains unresolved.
 Record: `docs/field-acceptance-20261028.md`.
 
-- [ ] Exercise an actual nonce application managed by the real PandaHome API, unique DNS, independent external-client resolution/request, matching backend nonce/time/source, changes and revocation; record direct and relay results separately.
-- [ ] Prove ingress through a controlled physical router using only an owned temporary mapping and an independent external request; verify removal and cleanup.
+- [x] Direct route: real API + original DnsSync + unique DNS + independent ECS nonce, actual application source/time, same-row port change, revoke and exact cleanup on fe17a0f (4/4 external proofs).
+- [ ] Public relay route: obtain a permitted application data port and an independent off-frps external client; real API/native public-control registration, cloud-loopback nonce and revoke passed separately and do not close public ingress.
+- [x] Physical TCP/UDP transport: real committed API, native 42-character ownership and TCP nonce/change/revoke; final TCP/UDP each 3/3 and own cleanup. Access window original 39 stable fields match; late UDP/final windows start/end at 38.
+- [ ] Investigate the later initial-baseline discrepancy: original UDP 32783 is missing before the UDP window, cause unproven; strict original-39 audit fails. Do not restore/adopt/delete an unknown rule.
 - [ ] Prove direct P2P traversal between genuinely separate networks, distinguish fallback relay, and independently verify resource cleanup.
 
 ## Feature 08: Private P2P TCP Access
@@ -36,7 +41,8 @@ Owner: PandaHome maintainers / Codex. Design: `docs/public-access.md`.
 - [x] Architecture acceptance — Reuse the P2P process guard; prove backend SIGKILL cleanup and same-state/same-port restart, and rerun native frp recovery against the actual client child.
 - [x] DDNS update P1 — Pass the original RR to the official SDK; verify all required update fields and real unique-record create, no-write idempotence, same-ID changed value, public/authoritative readback and owned cleanup.
 - [x] Access interaction acceptance — Independently verify committed rapid Escape/Cancel/X navigation and full correction after save failures in EN/ZH desktop/mobile browsers.
-- [ ] Deployment acceptance — Verify an actual public application endpoint from outside the home network; DNS cloud/public resolution and loopback frp evidence do not close this item.
+- [x] Direct field acceptance — Real external application content, DNS, API-managed publish/change/revoke and exact cleanup passed on fe17a0f; see docs/field-acceptance-20261028.md.
+- [ ] Public relay field acceptance — Real native relay runtime diagnostic passed, but SG application ingress and an off-frps external client remain required. No persistent deployment is claimed.
 
 ## Feature 01: Core Platform & Tooling Baseline
 - [x] Step 1 (Backend) — Audit actual runtime imports (UPnP, auth, Aliyun) and list missing dependencies with required versions.

@@ -3,6 +3,33 @@
 Current work status remains in `tasks.md`. This document records the integration
 acceptance contract for the three concurrent implementations and their reviewer.
 
+## Subsequent field acceptance — field-20261028-183427Z
+
+Field backend fixes are `65dc3a8` and `fe17a0f`; accepted frontend source stays
+`4efe286`. Actual full native hooks pass **393 backend / 103 frontend tests**,
+plus Ruff/ESLint, type checking and default Next 16.1.6/Turbopack build. Earlier
+local-delivery, UE/UI and real DNS/DDNS records below retain their original scope.
+
+Committed-source direct public application DNS/nonce, same-row port change,
+revoke and exact cleanup pass with an independent ECS client. The final committed
+full-API window passes TCP and UDP each 3/3, deletion and independent cleanup
+against its current 38-rule baseline. Real API/native public-control relay runtime and
+cloud-local nonce/revoke pass; public relay ingress remains unpassed because
+58131 lacks SG ingress and the observer is co-located with frps. Native P2P direct
+still has no successful payload despite real independent NAT evidence and native
+attempts. No topology inference or STCP/SSH substitutes for a direct payload.
+
+All run-owned services, mappings, credentials and private test DB/admin state are
+cleaned and independently checked. A later historical-router audit remains
+**failed**: initial 39 last verified 20:15:25, but UDP-window before/after contains
+38 unchanged entries and original UDP 32783 is missing. Requested lease 21600s;
+cause is unproven, with no restoration or unknown-rule write. This finding is
+separate from successful transport and exact owned cleanup. Current operational
+status, full resource/evidence pointers and remaining inputs are in
+[field acceptance](field-acceptance-20261028.md) and `tasks.md`. PM only
+coordinates/read-only reviews; owners and Access deliver code, scripts, docs and
+commits. There is no persistent deployment or push.
+
 ## Ownership
 
 | Workstream | Existing chat | Responsibility |
