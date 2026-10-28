@@ -1,5 +1,17 @@
 # PandaHome Task Backlog
 
+## Field Acceptance: field-20261028-183427Z
+
+Owners: Access (public application chain, resource ledger and final shared delivery),
+UPnP (physical-router ingress), P2P (direct traversal between separate networks).
+PM coordinates and independently reviews; owners implement and submit their work.
+Current state: live capability preflight in progress; no field check has passed.
+Record: `docs/field-acceptance-20261028.md`.
+
+- [ ] Exercise an actual nonce application managed by the real PandaHome API, unique DNS, independent external-client resolution/request, matching backend nonce/time/source, changes and revocation; record direct and relay results separately.
+- [ ] Prove ingress through a controlled physical router using only an owned temporary mapping and an independent external request; verify removal and cleanup.
+- [ ] Prove direct P2P traversal between genuinely separate networks, distinguish fallback relay, and independently verify resource cleanup.
+
 ## Feature 08: Private P2P TCP Access
 
 Owner: PandaHome maintainers / Codex. Design and operations: `docs/p2p.md`.
