@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import type { UpnpMapping } from "@/types/upnp";
+import { UpnpDialogError, type UpnpSubmissionError } from "@/components/upnp/dialog-error";
+import { getErrorMessage } from "@/lib/api-client";
 
 type FormMode = "add" | "edit";
 
@@ -28,6 +30,7 @@ interface UpnpMappingFormDialogProps {
   onOpenChange: (open: boolean) => void;
   initialValues?: UpnpMappingDraft;
   isSubmitting?: boolean;
+  onCloseAutoFocus?: (event: Event) => void;
   onSubmit: (values: UpnpMappingDraft) => Promise<void> | void;
 }
 
@@ -72,11 +75,13 @@ export function UpnpMappingFormDialog({
   onOpenChange,
   initialValues,
   isSubmitting = false,
+  onCloseAutoFocus,
   onSubmit,
 }: UpnpMappingFormDialogProps) {
   const t = useTranslations("upnp");
   const [values, setValues] = useState<UpnpMappingDraft>(() => initialValues ?? getDefaultValues());
   const [errors, setErrors] = useState<Partial<Record<keyof UpnpMappingDraft, string>>>({});
+  const [submissionError, setSubmissionError] = useState<UpnpSubmissionError | null>(null);
 
   const title = mode === "add" ? t("addMapping") : t("editMapping");
   const submitLabel = mode === "add" ? t("add") : t("save");
@@ -93,28 +98,37 @@ export function UpnpMappingFormDialog({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setValues(initialValues ?? getDefaultValues());
     setErrors({});
+    setSubmissionError(null);
   }, [initialValues, open]);
 
   const submit = async () => {
+    setSubmissionError(null);
     const nextErrors = validate(values, t);
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
     }
-    await onSubmit({
-      ...values,
-      description: values.description.trim(),
-      internal_ip: values.internal_ip.trim(),
-    });
+    setErrors({});
+    try {
+      await onSubmit({
+        ...values,
+        description: values.description.trim(),
+        internal_ip: values.internal_ip.trim(),
+      });
+    } catch (error) {
+      setSubmissionError({ message: getErrorMessage(error, t("failed")) });
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
+
+        <UpnpDialogError error={submissionError} />
 
         <div className="grid gap-4">
           <div className="grid gap-2">

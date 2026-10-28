@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,6 +31,10 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
   const [state, setState] = useState<AsyncState<UpnpMapping[]>>({ status: "loading" });
   const isUnmountedRef = useRef(false);
   const stateRef = useRef(state);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
+  const formTriggerRef = useRef<HTMLElement | null>(null);
+  const deleteTriggerRef = useRef<HTMLElement | null>(null);
+  const pendingFocusRef = useRef<HTMLElement | null>(null);
 
   const { toast } = useToast();
 
@@ -38,10 +42,38 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
   const [formMode, setFormMode] = useState<"add" | "edit">("add");
   const [editingMapping, setEditingMapping] = useState<UpnpMapping | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const formInitialValues = useMemo<UpnpMappingDraft | undefined>(() => editingMapping ? {
+    description: editingMapping.description,
+    internal_ip: editingMapping.internal_ip,
+    internal_port: editingMapping.internal_port,
+    external_port: editingMapping.external_port,
+    protocol: editingMapping.protocol,
+    lease_duration: editingMapping.lease_duration,
+  } : undefined, [editingMapping]);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<UpnpMapping | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const restoreDialogFocus = useCallback((event: Event, trigger: HTMLElement | null) => {
+    event.preventDefault();
+    if (isUnmountedRef.current) return;
+    const target = trigger?.isConnected ? trigger : addButtonRef.current;
+    if (target?.matches(":disabled")) {
+      // A successful write may close the dialog before its list refresh ends.
+      pendingFocusRef.current = target;
+    } else {
+      target?.focus({ preventScroll: true });
+      pendingFocusRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isSubmitting || isDeleting || !pendingFocusRef.current) return;
+    const target = pendingFocusRef.current;
+    pendingFocusRef.current = null;
+    if (target.isConnected) target.focus({ preventScroll: true });
+  }, [isSubmitting, isDeleting]);
 
   useEffect(() => {
     onBusyChange?.(isSubmitting || isDeleting || formOpen || deleteOpen);
@@ -125,19 +157,22 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
     [setSafeState, t, deviceUrl, gatewayT]
   );
 
-  const openAddDialog = useCallback(() => {
+  const openAddDialog = useCallback((event: MouseEvent<HTMLButtonElement>) => {
+    formTriggerRef.current = event.currentTarget;
     setFormMode("add");
     setEditingMapping(null);
     setFormOpen(true);
   }, []);
 
-  const openEditDialog = useCallback((mapping: UpnpMapping) => {
+  const openEditDialog = useCallback((mapping: UpnpMapping, trigger: HTMLElement) => {
+    formTriggerRef.current = trigger;
     setFormMode("edit");
     setEditingMapping(mapping);
     setFormOpen(true);
   }, []);
 
-  const requestDelete = useCallback((mapping: UpnpMapping) => {
+  const requestDelete = useCallback((mapping: UpnpMapping, trigger: HTMLElement) => {
+    deleteTriggerRef.current = trigger;
     setDeleteTarget(mapping);
     setDeleteOpen(true);
   }, []);
@@ -206,9 +241,8 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
               : previousState.status === "empty"
                 ? []
                 : [];
-          setMappings([optimistic, ...current]);
-
           await createMapping(draft);
+          setMappings([optimistic, ...current]);
           toast({ variant: "success", title: t("success"), description: t("toast.addSuccess") });
           closeFormDialog(false);
           await loadMappings();
@@ -234,8 +268,6 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
         } else {
           next.unshift(optimistic);
         }
-        setMappings(next);
-
         try {
           await deleteMapping(original.external_port, original.protocol);
         } catch (err) {
@@ -264,6 +296,7 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
           throw err;
         }
 
+        setMappings(next);
         toast({ variant: "success", title: t("success"), description: t("toast.editSuccess") });
         closeFormDialog(false);
         await loadMappings();
@@ -274,6 +307,7 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
           title: t("failed"),
           description: getErrorMessage(error, t("failed")),
         });
+        throw error;
       } finally {
         setIsSubmitting(false);
       }
@@ -309,9 +343,8 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
           : previousState.status === "empty"
             ? []
             : [];
-      setMappings(current.filter((item) => mappingKey(item) !== mappingKey(target)));
-
       await deleteMapping(target.external_port, target.protocol);
+      setMappings(current.filter((item) => mappingKey(item) !== mappingKey(target)));
       toast({ variant: "success", title: t("success"), description: t("toast.deleteSuccess") });
       closeDeleteDialog(false);
       await loadMappings();
@@ -322,6 +355,7 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
         title: t("failed"),
         description: getErrorMessage(error, t("failed")),
       });
+      throw error;
     } finally {
       setIsDeleting(false);
     }
@@ -339,7 +373,7 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end gap-2">
-        <Button type="button" onClick={openAddDialog} disabled={isSubmitting || isDeleting}>
+        <Button ref={addButtonRef} type="button" onClick={openAddDialog} disabled={isSubmitting || isDeleting}>
           <Plus className="h-4 w-4" />
           {t("addMapping")}
         </Button>
@@ -424,7 +458,7 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
                         <DropdownMenuItem
                           onSelect={(event) => {
                             event.preventDefault();
-                            openEditDialog(mapping);
+                            openEditDialog(mapping, event.currentTarget as HTMLElement);
                           }}
                           disabled={isSubmitting || isDeleting}
                         >
@@ -434,7 +468,7 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
                           variant="destructive"
                           onSelect={(event) => {
                             event.preventDefault();
-                            requestDelete(mapping);
+                            requestDelete(mapping, event.currentTarget as HTMLElement);
                           }}
                           disabled={isSubmitting || isDeleting}
                         >
@@ -454,18 +488,8 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
         mode={formMode}
         open={formOpen}
         onOpenChange={closeFormDialog}
-        initialValues={
-          formMode === "edit" && editingMapping
-            ? {
-                description: editingMapping.description,
-                internal_ip: editingMapping.internal_ip,
-                internal_port: editingMapping.internal_port,
-                external_port: editingMapping.external_port,
-                protocol: editingMapping.protocol,
-                lease_duration: editingMapping.lease_duration,
-              }
-            : undefined
-        }
+        onCloseAutoFocus={(event) => restoreDialogFocus(event, formTriggerRef.current)}
+        initialValues={formInitialValues}
         isSubmitting={isSubmitting}
         onSubmit={handleSubmit}
       />
@@ -473,6 +497,7 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
       <UpnpMappingDeleteDialog
         open={deleteOpen}
         onOpenChange={closeDeleteDialog}
+        onCloseAutoFocus={(event) => restoreDialogFocus(event, deleteTriggerRef.current)}
         mapping={deleteTarget}
         isDeleting={isDeleting}
         onConfirm={confirmDelete}

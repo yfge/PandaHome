@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { UpnpMapping } from "@/types/upnp";
+import { UpnpDialogError, type UpnpSubmissionError } from "@/components/upnp/dialog-error";
+import { getErrorMessage } from "@/lib/api-client";
 
 interface UpnpMappingDeleteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mapping: UpnpMapping | null;
   isDeleting?: boolean;
+  onCloseAutoFocus?: (event: Event) => void;
   onConfirm: () => Promise<void> | void;
 }
 
@@ -27,9 +30,19 @@ export function UpnpMappingDeleteDialog({
   onOpenChange,
   mapping,
   isDeleting = false,
+  onCloseAutoFocus,
   onConfirm,
 }: UpnpMappingDeleteDialogProps) {
   const t = useTranslations("upnp");
+  const [submissionError, setSubmissionError] = useState<UpnpSubmissionError | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      // Reset feedback for a newly opened confirmation.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSubmissionError(null);
+    }
+  }, [open]);
 
   const summary = useMemo(() => {
     if (!mapping) {
@@ -44,12 +57,17 @@ export function UpnpMappingDeleteDialog({
   }, [mapping, t]);
 
   const confirm = async () => {
-    await onConfirm();
+    setSubmissionError(null);
+    try {
+      await onConfirm();
+    } catch (error) {
+      setSubmissionError({ message: getErrorMessage(error, t("failed")) });
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{t("confirmDelete")}</DialogTitle>
           <DialogDescription>
@@ -57,6 +75,7 @@ export function UpnpMappingDeleteDialog({
             {summary ? <span className="text-muted-foreground mt-2 block text-sm">{summary}</span> : null}
           </DialogDescription>
         </DialogHeader>
+        <UpnpDialogError error={submissionError} />
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isDeleting}>
             {t("cancel")}
