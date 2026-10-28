@@ -106,6 +106,9 @@ terminate HTTPS or issue certificates for applications.
   response automatically retries a permanent lease. Lease `0` remains explicit;
   finite leases must be at least 60 seconds. Native frpc reconnects on disconnect,
   and an exited process is relaunched on the next cycle.
+- Public and private frp transports reuse one process guard. It captures process
+  creation identities and cleans owned native processes if the backend or either
+  monitor disappears, preventing old clients from blocking restored entries.
 - Automatic direct failures can switch to a configured relay. Three failed
   external direct probes trigger a relay trial; direct is reconsidered after a
   ten-minute cooldown. Failed owned-mapping cleanup is retained for retry without

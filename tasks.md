@@ -19,7 +19,7 @@ Owner: PandaHome maintainers / Codex. Design: `docs/public-access.md`.
 - [x] Step 3 — Integrate native frpc configuration, private credential files and supervised lifecycle, with tests.
 - [x] Step 4 — Persist service intent and reconcile DDNS, owned mappings, relay selection, retries, probes and alerts; cover recovery and API authorization.
 - [x] Step 5 — Deliver localized guided configuration, actionable network/status feedback and responsive service management; validate tests, lint and production build.
-- [ ] Step 6 — Complete setup/operations documentation, migration verification, full hooks and final delivery review. Live deployment requires the operator's network and relay configuration.
+- [x] Step 6 — Complete setup/operations documentation, migration verification, full hooks and final delivery review. Live deployment requires the operator's network and relay configuration.
 
 ## Feature 01: Core Platform & Tooling Baseline
 - [x] Step 1 (Backend) — Audit actual runtime imports (UPnP, auth, Aliyun) and list missing dependencies with required versions.
