@@ -6,7 +6,7 @@ Owner: PandaHome maintainers / Codex. Design: `docs/public-access.md`.
 
 - [x] Step 1 — Record the dual-route design, evidence boundaries, delivery sequence and acceptance criteria.
 - [x] Step 2 — Detect public IPv4, upstream NAT, CGNAT and unknown safely, with mocked network tests.
-- [ ] Step 3 — Integrate native frpc configuration, private credential files and supervised lifecycle, with tests.
+- [x] Step 3 — Integrate native frpc configuration, private credential files and supervised lifecycle, with tests.
 - [ ] Step 4 — Persist service intent and reconcile DDNS, owned mappings, relay selection, retries, probes and alerts; cover recovery and API authorization.
 - [ ] Step 5 — Deliver localized guided configuration, actionable network/status feedback and responsive service management; validate tests, lint and production build.
 - [ ] Step 6 — Complete setup/operations documentation, migration verification, full hooks and final delivery review. Live deployment requires the operator's network and relay configuration.
