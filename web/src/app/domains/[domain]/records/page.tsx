@@ -1,18 +1,19 @@
 "use client";
 
+import { use } from "react";
 import { useTranslations } from "next-intl";
 import { RecordList } from "@/components/domain/record-list";
 import { Protected } from "@/components/auth/protected";
 
 interface DomainRecordsPageProps {
-  params: {
+  params: Promise<{
     domain: string;
-  };
+  }>;
 }
 
 const DomainRecordsPage = ({ params }: DomainRecordsPageProps) => {
   const t = useTranslations("domain");
-  const { domain } = params;
+  const { domain } = use(params);
 
   return (
     <Protected>
