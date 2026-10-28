@@ -20,7 +20,15 @@ must be read separately from those historical results. The final public8081
 QUIC/KCP complete-window phase also finished: both initial native windows reached
 UDP wait timeout, both nonce user streams reset, and XTCP direct remains NOT
 accepted. Both public leases are now independently cleaned with no live handoff.
-Latest runtime result: external `final-field-receipt.json`. The subsequently
+Final frozen delivery: external `access-final-handoff.json`, with authoritative
+`public-direct-complete-window/frozen-conclusion.json` and refreshed `resources.json`.
+Historical runtime result `final-field-receipt.json` is retained unchanged. Final
+independent freeze review verified16/16 input hashes; QUIC/KCP nonce0/2 remains
+XTCP NOT accepted. All live run-owned resources are0, with last independent
+read-only cleanup verification21:09:35UTC. Log/manifest custody is released to
+Access for shared final integration; P2P does not stage/commit or continue editing
+after this handoff. Earlier preparation/rebuild instructions below are historical
+and superseded by the final freeze. The subsequently
 requested exact /32 alternative is now a prepared, unapproved candidate only;
 current review handoff is external `route-candidate/handoff.json`. No route
 mutation/watchdog/new frps was run during its preparation. No product source,
@@ -197,6 +205,12 @@ handoff `runtime-docker/final-receipt.json` supersedes older current-status note
   prior product test evidence stays separate. No staging/commit was performed.
 
 ## Next steps
+
+Final state: completed evidence is frozen and released to Access. Do not rerun
+identical sessions or rebuild services from historical queues. The existing
+non-VPN-node question remains unanswered; the passive /32 proposal is optional,
+unapproved and nonblocking. PM may later review a user choice; P2P performs no
+route/SG/VPN mutation or resource allocation. Historical next-step notes follow.
 
 The latest PM review explicitly accepts the actual Docker/VPN NAT as the
 provider topology, and this topology was now tested through real sessions rather
@@ -571,3 +585,47 @@ coordination/p2p-frps-release-confirmed.json points peers to the current receipt
 Lifecycle remains P2P-exclusive. No product, shared task/doc/build/index/stage/
 commit, SG/firewall/route or existing service changed. No direct independent-chat
 message send is claimed; the artifact and final reply supply the release receipt.
+
+### Final independent freeze and Access custody release
+
+Final independent audit used local retained evidence only: no network/SSH,
+services, captures, cleanup, route commands or tests were started. New external
+`public-direct-complete-window/freeze-review.json` reports freeze_ready=true:
+16/16 inputs match exact SHA/byte counts, both canonical nonce bodies match sent
+length/hash records, and successful application receipt is0/2. Original runtime
+result and reviews remain unchanged; their historical pending-review marker is
+explicitly superseded by `frozen-conclusion.json`, not silently rewritten.
+
+Initial visitor SIDs naturally reached35s+3s UDP wait timeout and then no tunnel
+session within each94s window. Assigned provider38s was not observed as a timeout:
+provider returned about4.2s after response on unexpected keyed/SID-valid peers
+3478/3479 rather than negotiated cloud7309b30197e6. Actual application streams
+reset at20.004451s/20.000859s with native open-tunnel timeout; business read90s
+and outer SSH/RPC110s were ceilings, not early7s harness termination. Later
+automatic SIDs had partial windows only.
+
+QUIC/KCP retained1041/1002 header rows across94.016s each, duration-limit stops,
+metadata limit250000 not reached, no old2000-packet cap. QUIC filter-received1046
+versus captured1041 is explicit. One-sided exact-peer IPv4/IHL5/UDP42-byte header
+sampling and zero reported kernel drops cannot prove a complete reverse census,
+rule out rewritten sources, or locate a unique loss point. This freezes direct
+NOT accepted for these actual Docker/VPN-to-cloud-VPC sessions only; it does not
+declare all topologies or permanent traversal impossible. Physical home-WAN
+direct and direct reconnect/revocation remain unpassed; old STCP stays separate.
+
+Refreshed external `resources.json` removes stale pending cleanup text, retains
+closed phase history, lists no live run-owned service/container/process/directory/
+credential resources, and binds its state to the existing independent verification
+at21:09:35.240316UTC rather than inventing a new probe. The passive /32 scripts/
+plans are retained artifacts, not a running watchdog or live token/CA. No routes,
+SG/VPN settings, product source, shared tasks/docs/build/index or commit changed.
+
+`access-final-handoff.json` is the final integration entry: exact own log SHA,
+resource ledger, frozen conclusion, audit and cleanup hashes. Access receives
+log/manifest custody for shared docs/index integration; PM remains review-only.
+P2P will make no further edits after delivery. The no-VPN existing-node question
+and optional exact /32 review do not delay this completed evidence handoff. Any
+future expired plan needs fresh read-only evidence and review of its exact SHA;
+no current authorization, silent refresh or route execution is inferred. Product
+tests/build/hooks are not repeated because this step only seals documentation
+and retained evidence; no commit is performed by P2P.
