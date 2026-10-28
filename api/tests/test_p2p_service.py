@@ -118,8 +118,10 @@ async def test_provider_command_is_parent_guarded_without_credential_arguments(m
     command = spawns[0][0]
     assert command[0] == sys.executable
     assert Path(command[1]).is_absolute() and Path(command[1]).name == "process_guard.py"
-    assert command[2:5] == ("--parent", str(os.getpid()), "--")
-    assert command[5:] == (str(Path("/usr/local/bin/frpc").resolve()), "-c", str(manager.relay._config_path))
+    assert command[2:5] == ("--parent", str(os.getpid()), "--parent-created-at")
+    assert float(command[5]) > 0
+    assert command[6] == "--"
+    assert command[7:] == (str(Path("/usr/local/bin/frpc").resolve()), "-c", str(manager.relay._config_path))
     assert manager.config.token not in repr(command)
     assert row.secret_key not in repr(command)
 

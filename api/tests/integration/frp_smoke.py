@@ -18,6 +18,8 @@ import tempfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import psutil
+
 from src.app.services.relay import FrpRelay, RelayConfig, RelayMapping, _toml_string
 
 
@@ -169,27 +171,28 @@ async def verify_native_config(frpc, config_path):
 
 
 async def check_recovery(relay, mappings, public_tcp, public_udp, launch_server, first_server):
-    first_pid = relay._process.pid
+    first_guard_pid = relay._process.pid
     await tcp_roundtrip(public_tcp)
     await udp_roundtrip(public_udp)
+    first_native_pid = native_client_pid(relay)
     if await relay.registration() != {1: True, 2: True}:
         raise AssertionError("Native frpc did not report TCP and UDP proxy acceptance")
     await relay.apply(list(reversed(mappings)))
-    if relay._process.pid != first_pid:
+    if relay._process.pid != first_guard_pid or native_client_pid(relay) != first_native_pid:
         raise AssertionError("Unchanged mappings unexpectedly restarted frpc")
     await stop_child(first_server)
     second_server = await launch_server()
     try:
         await tcp_roundtrip(public_tcp, timeout=30)
         await udp_roundtrip(public_udp)
-        if relay._process.pid != first_pid:
+        if relay._process.pid != first_guard_pid or native_client_pid(relay) != first_native_pid:
             raise AssertionError("Native frpc reconnect unexpectedly changed its PID")
-        os.kill(first_pid, signal.SIGKILL)
+        os.kill(first_native_pid, signal.SIGKILL)
         await asyncio.wait_for(relay._process.wait(), 3)
         if relay.status()["running"]:
             raise AssertionError("Crashed frpc was reported as running")
         await relay.apply(mappings)
-        if relay._process.pid == first_pid:
+        if relay._process.pid == first_guard_pid:
             raise AssertionError("Reconciliation did not restart crashed frpc")
         await tcp_roundtrip(public_tcp)
         await udp_roundtrip(public_udp)
@@ -198,6 +201,15 @@ async def check_recovery(relay, mappings, public_tcp, public_udp, launch_server,
         await check_registration_conflict(relay, mappings)
     finally:
         await stop_child(second_server)
+
+
+def native_client_pid(relay):
+    executable = Path(relay.config.binary).resolve()
+    children = psutil.Process(relay._process.pid).children(recursive=True)
+    clients = [child.pid for child in children if Path(child.exe()).resolve() == executable]
+    if len(clients) != 1:
+        raise AssertionError("Relay guard did not own exactly one native frpc client")
+    return clients[0]
 
 
 async def check_registration_conflict(relay, mappings):

@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Sequence
 
+from .process_guard import guarded_command
 from .relay_status import FrpStatusClient
 
 
@@ -185,8 +186,8 @@ class FrpRelay:
             return result if self._process.returncode is None else dict.fromkeys(result, False)
 
     def _process_command(self, binary: str) -> tuple[str, ...]:
-        """Allow a transport adapter to supervise its child without shell parsing."""
-        return binary, "-c", str(self._config_path)
+        """Own every native transport across backend death, without shell parsing."""
+        return guarded_command((binary, "-c", str(self._config_path)))
 
     async def _start(self, binary: str) -> None:
         # Shield creation so cancellation cannot lose the handle to a new child.

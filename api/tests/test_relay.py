@@ -1,10 +1,16 @@
 import asyncio
+import json
+import os
+import signal
 import stat
+import sys
 import tomllib
+from contextlib import suppress
 from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
+import psutil
 
 import src.app.services.relay as relay_module
 from src.app.services.relay import FrpRelay, RelayConfig, RelayError, RelayMapping
@@ -86,7 +92,11 @@ async def test_native_config_and_safe_process_arguments(relay, spawns, tmp_path)
         {"name": "pandahome-2-udp", "type": "udp", "localIP": "192.168.1.50", "localPort": 8080, "remotePort": 15353},
     ]
     args, kwargs, _ = spawns[0]
-    assert args == ("/usr/local/bin/frpc", "-c", str(config_path))
+    assert args[0] == sys.executable
+    assert Path(args[1]).is_absolute() and Path(args[1]).name == "process_guard.py"
+    assert args[2:5] == ("--parent", str(os.getpid()), "--parent-created-at")
+    assert float(args[5]) > 0
+    assert args[6:] == ("--", "/usr/local/bin/frpc", "-c", str(config_path))
     assert "private-token" not in str(args)
     assert kwargs == {
         "stdin": asyncio.subprocess.DEVNULL,
@@ -307,3 +317,94 @@ async def test_symlink_directory_is_rejected_without_touching_target(relay, spaw
         await relay.apply([mapping()])
     assert stat.S_IMODE(target.stat().st_mode) == 0o755
     assert not spawns
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(os.name != "posix", reason="Backend SIGKILL regression exercises the POSIX deployment lifecycle")
+async def test_default_public_relay_does_not_orphan_native_listener_after_backend_sigkill(tmp_path):
+    payload, owner_script, ready = tmp_path / "native.py", tmp_path / "backend.py", tmp_path / "native-ready.json"
+    payload.write_text(
+        f"#!{sys.executable}\n"
+        "import json, os, socket\nfrom pathlib import Path\n"
+        "with socket.socket() as listener:\n"
+        "    listener.bind(('127.0.0.1', 0))\n    listener.listen()\n"
+        "    Path(os.environ['PANDAHOME_NATIVE_READY']).write_text(json.dumps({'pid': os.getpid(), 'port': listener.getsockname()[1]}))\n"
+        "    while True:\n        connection, _ = listener.accept()\n"
+        "        with connection:\n            connection.sendall(connection.recv(128))\n"
+    )
+    payload.chmod(0o700)
+    owner_script.write_text(
+        "import asyncio, sys\nfrom pathlib import Path\n"
+        "from src.app.services.relay import FrpRelay, RelayConfig, RelayMapping\n"
+        "async def main():\n"
+        "    relay = FrpRelay(RelayConfig(state_dir=Path(sys.argv[1]), binary=sys.argv[2], server_addr='unused'))\n"
+        "    await relay.apply([RelayMapping(1, '127.0.0.1', 8080, 18080, 'TCP')])\n"
+        "    try:\n        await asyncio.Event().wait()\n"
+        "    finally:\n        await relay.stop()\n"
+        "asyncio.run(main())\n"
+    )
+    environment = {
+        **os.environ,
+        "PANDAHOME_NATIVE_READY": str(ready),
+        "PYTHONPATH": str(Path(relay_module.__file__).resolve().parents[3]),
+    }
+    owner = await asyncio.create_subprocess_exec(
+        sys.executable,
+        str(owner_script),
+        str(tmp_path / "state"),
+        str(payload),
+        env=environment,
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+    descendants = []
+    try:
+        deadline = asyncio.get_running_loop().time() + 8
+        while asyncio.get_running_loop().time() < deadline:
+            try:
+                data = json.loads(ready.read_text())
+                break
+            except (FileNotFoundError, json.JSONDecodeError):
+                assert owner.returncode is None, "Backend exited before guarded native listener was ready"
+                await asyncio.sleep(0.02)
+        else:
+            pytest.fail("Default public relay did not launch its native payload")
+        descendants = psutil.Process(owner.pid).children(recursive=True)
+        assert data["pid"] in {child.pid for child in descendants}
+        reader, writer = await asyncio.open_connection("127.0.0.1", data["port"])
+        try:
+            writer.write(b"backend-death-proof")
+            await writer.drain()
+            assert await asyncio.wait_for(reader.read(128), 1) == b"backend-death-proof"
+        finally:
+            writer.close()
+            await writer.wait_closed()
+        owner.kill()
+        assert await asyncio.wait_for(owner.wait(), 2) == -signal.SIGKILL
+        await _wait_owned_processes_stopped(descendants)
+        with pytest.raises((OSError, TimeoutError)):
+            await asyncio.wait_for(asyncio.open_connection("127.0.0.1", data["port"]), 1)
+    finally:
+        if owner.returncode is None:
+            with suppress(psutil.NoSuchProcess):
+                descendants.extend(psutil.Process(owner.pid).children(recursive=True))
+            owner.kill()
+            await asyncio.wait_for(owner.wait(), 2)
+        for child in reversed(descendants):
+            with suppress(psutil.NoSuchProcess):
+                child.kill()
+        await _wait_owned_processes_stopped(descendants)
+
+
+async def _wait_owned_processes_stopped(processes):
+    deadline = asyncio.get_running_loop().time() + 5
+    while asyncio.get_running_loop().time() < deadline:
+        live = []
+        for process in processes:
+            with suppress(psutil.NoSuchProcess):
+                if process.is_running() and process.status() != psutil.STATUS_ZOMBIE:
+                    live.append(process)
+        if not live:
+            return
+        await asyncio.sleep(0.02)
+    pytest.fail("Backend death left an owned relay process alive")

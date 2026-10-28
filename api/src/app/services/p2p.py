@@ -1,9 +1,7 @@
 """Own private frp providers without treating a process as proof of a peer path."""
 
 import asyncio
-import os
 import re
-import sys
 from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -128,12 +126,6 @@ class _P2PRelay(FrpRelay):
 
     def _render_config(self, mappings: Sequence[_Provider]) -> str:
         return _render_providers(self._p2p_config, mappings)
-
-    def _process_command(self, binary: str) -> tuple[str, ...]:
-        return (
-            sys.executable, str(Path(__file__).with_name("process_guard.py")),
-            "--parent", str(os.getpid()), "--", *super()._process_command(binary),
-        )
 
 
 class P2PManager:
