@@ -8,6 +8,7 @@ Owner: PandaHome maintainers / Codex. Design and operations: `docs/p2p.md`.
 - [x] Add active-admin CRUD, key rotation, protected visitor/CA downloads and a localized `/p2p` management page.
 - [x] Verify API authorization, provider recovery, native frp configuration/data transfer, migrations and frontend production build.
 - [x] Reuse stable-identity guard/watchdog supervision and verify individual monitor death plus forced-stop cleanup without orphan listeners.
+- [x] Restore P2P cancellation focus and verify visible failed-save feedback with retained drafts and retries in EN/ZH desktop/mobile browsers.
 - [ ] Validate real direct traversal between separate networks using the deployment's frps/STUN configuration; local validation cannot close this item.
 
 ## Feature 07: Managed Public Services
@@ -21,10 +22,13 @@ Owner: PandaHome maintainers / Codex. Design: `docs/public-access.md`.
 - [x] Step 5 — Deliver localized guided configuration, actionable network/status feedback and responsive service management; validate tests, lint and production build.
 - [x] Step 6 — Complete setup/operations documentation, migration verification, full hooks and final delivery review. Live deployment requires the operator's network and relay configuration.
 - [x] Architecture acceptance — Reuse the P2P process guard; prove backend SIGKILL cleanup and same-state/same-port restart, and rerun native frp recovery against the actual client child.
+- [x] DDNS update P1 — Pass the original RR to the official SDK; verify all required update fields and real unique-record create, no-write idempotence, same-ID changed value, public/authoritative readback and owned cleanup.
+- [x] Access interaction acceptance — Independently verify committed rapid Escape/Cancel/X navigation and full correction after save failures in EN/ZH desktop/mobile browsers.
+- [ ] Deployment acceptance — Verify an actual public application endpoint from outside the home network; DNS cloud/public resolution and loopback frp evidence do not close this item.
 
 ## Feature 01: Core Platform & Tooling Baseline
 - [x] Step 1 (Backend) — Audit actual runtime imports (UPnP, auth, Aliyun) and list missing dependencies with required versions.
-- [x] Step 2 (Backend) — Update `api/pyproject.toml` to include the audited deps (`async-upnp-client`, `aiohttp`, `netifaces`, `python-jose`, `passlib`, etc.) and verify `uv pip install -e api` succeeds.
+- [x] Step 2 (Backend) — Declare audited runtime/test dependencies and verify fresh virtualenv `api[test]` installation, configuration, password verification and the backend suite; document the validated host-specific SDK override.
 - [x] Step 3 (Backend) — Normalize configuration defaults (`SECRET_KEY`, database URL, Aliyun env names) through `settings` and ensure `.env` loading is consistent.
 - [x] Step 4 (Frontend) — Add `src/lib/utils/cn.ts` (class name helper) and `src/lib/api-client.ts` (typed fetch wrapper honoring `NEXT_PUBLIC_API_BASE_URL`).
 - [x] Step 5 (Frontend) — Refactor existing fetch calls (status, UPnP, domains) to use the API client and provide uniform empty/error/loading states.
@@ -46,6 +50,7 @@ Owner: PandaHome maintainers / Codex. Design: `docs/public-access.md`.
 - [x] Step 4 (Frontend) — Build mapping CRUD UI: modal form, edit/delete actions, optimistic updates, and toast feedback via API client.
 - [x] Step 5 (Frontend) — Ensure list view shows loading skeletons, empty states, and localized error banners for fetch failures.
 - [x] Step 6 (Shared) — Write UPnP operations guide (router prerequisites, troubleshooting) under `docs/upnp.md` and reference it from READMEs/agent logs.
+- [x] UI follow-up — Fix rapid Escape/Cancel then Tab and delayed outer-menu focus after pending requests; independently pass EN/ZH × 390/1440 rapid-close, success/failure navigation, inline-error retry and second-gateway checks on frozen production source.
 
 ## Feature 04: Domain Management Workflow
 - [x] Step 1 (Backend) — Define Pydantic schemas for domain + record requests/responses and enforce body payloads instead of query params.
