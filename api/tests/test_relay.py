@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import signal
+import socket
 import stat
 import sys
 import tomllib
@@ -321,16 +322,20 @@ async def test_symlink_directory_is_rejected_without_touching_target(relay, spaw
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(os.name != "posix", reason="Backend SIGKILL regression exercises the POSIX deployment lifecycle")
-async def test_default_public_relay_does_not_orphan_native_listener_after_backend_sigkill(tmp_path):
+async def test_default_public_relay_reclaims_same_port_after_backend_sigkill(tmp_path):
     payload, owner_script, ready = tmp_path / "native.py", tmp_path / "backend.py", tmp_path / "native-ready.json"
     payload.write_text(
         f"#!{sys.executable}\n"
-        "import json, os, socket\nfrom pathlib import Path\n"
+        "import json, os, socket, sys, tomllib\nfrom pathlib import Path\nimport psutil\n"
+        "proxy = tomllib.loads(Path(sys.argv[2]).read_text())['proxies'][0]\n"
         "with socket.socket() as listener:\n"
-        "    listener.bind(('127.0.0.1', 0))\n    listener.listen()\n"
-        "    Path(os.environ['PANDAHOME_NATIVE_READY']).write_text(json.dumps({'pid': os.getpid(), 'port': listener.getsockname()[1]}))\n"
+        "    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)\n"
+        "    listener.bind(('127.0.0.1', proxy['remotePort']))\n    listener.listen()\n"
+        "    Path(os.environ['PANDAHOME_NATIVE_READY']).write_text(json.dumps({\n"
+        "        'pid': os.getpid(), 'created_at': psutil.Process().create_time(),\n"
+        "        'port': listener.getsockname()[1], 'name': proxy['name'],\n    }))\n"
         "    while True:\n        connection, _ = listener.accept()\n"
-        "        with connection:\n            connection.sendall(connection.recv(128))\n"
+        "        with connection:\n            while data := connection.recv(128):\n                connection.sendall(data)\n"
     )
     payload.chmod(0o700)
     owner_script.write_text(
@@ -338,7 +343,7 @@ async def test_default_public_relay_does_not_orphan_native_listener_after_backen
         "from src.app.services.relay import FrpRelay, RelayConfig, RelayMapping\n"
         "async def main():\n"
         "    relay = FrpRelay(RelayConfig(state_dir=Path(sys.argv[1]), binary=sys.argv[2], server_addr='unused'))\n"
-        "    await relay.apply([RelayMapping(1, '127.0.0.1', 8080, 18080, 'TCP')])\n"
+        "    await relay.apply([RelayMapping(1, '127.0.0.1', 8080, int(sys.argv[3]), 'TCP')])\n"
         "    try:\n        await asyncio.Event().wait()\n"
         "    finally:\n        await relay.stop()\n"
         "asyncio.run(main())\n"
@@ -348,52 +353,73 @@ async def test_default_public_relay_does_not_orphan_native_listener_after_backen
         "PANDAHOME_NATIVE_READY": str(ready),
         "PYTHONPATH": str(Path(relay_module.__file__).resolve().parents[3]),
     }
-    owner = await asyncio.create_subprocess_exec(
-        sys.executable,
-        str(owner_script),
-        str(tmp_path / "state"),
-        str(payload),
-        env=environment,
-        stdout=asyncio.subprocess.DEVNULL,
-        stderr=asyncio.subprocess.DEVNULL,
-    )
-    descendants = []
-    try:
-        deadline = asyncio.get_running_loop().time() + 8
-        while asyncio.get_running_loop().time() < deadline:
-            try:
-                data = json.loads(ready.read_text())
-                break
-            except (FileNotFoundError, json.JSONDecodeError):
-                assert owner.returncode is None, "Backend exited before guarded native listener was ready"
-                await asyncio.sleep(0.02)
-        else:
-            pytest.fail("Default public relay did not launch its native payload")
-        descendants = psutil.Process(owner.pid).children(recursive=True)
-        assert data["pid"] in {child.pid for child in descendants}
-        reader, writer = await asyncio.open_connection("127.0.0.1", data["port"])
+    with socket.socket() as reservation:
+        reservation.bind(("127.0.0.1", 0))
+        public_port = reservation.getsockname()[1]
+    previous_identity = None
+    for _generation in range(2):
+        ready.unlink(missing_ok=True)
+        owner = await asyncio.create_subprocess_exec(
+            sys.executable, str(owner_script), str(tmp_path / "state"), str(payload), str(public_port),
+            env=environment, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
+        )
+        descendants = []
         try:
-            writer.write(b"backend-death-proof")
-            await writer.drain()
-            assert await asyncio.wait_for(reader.read(128), 1) == b"backend-death-proof"
-        finally:
-            writer.close()
-            await writer.wait_closed()
-        owner.kill()
-        assert await asyncio.wait_for(owner.wait(), 2) == -signal.SIGKILL
-        await _wait_owned_processes_stopped(descendants)
-        with pytest.raises((OSError, TimeoutError)):
-            await asyncio.wait_for(asyncio.open_connection("127.0.0.1", data["port"]), 1)
-    finally:
-        if owner.returncode is None:
-            with suppress(psutil.NoSuchProcess):
-                descendants.extend(psutil.Process(owner.pid).children(recursive=True))
+            data = await _wait_native_listener(ready, owner)
+            descendants = psutil.Process(owner.pid).children(recursive=True)
+            assert data["pid"] in {child.pid for child in descendants}
+            assert (data["port"], data["name"]) == (public_port, "pandahome-1-tcp")
+            identity = data["pid"], data["created_at"]
+            assert identity != previous_identity
+            previous_identity = identity
+            await _native_roundtrip(public_port)
             owner.kill()
-            await asyncio.wait_for(owner.wait(), 2)
-        for child in reversed(descendants):
-            with suppress(psutil.NoSuchProcess):
-                child.kill()
-        await _wait_owned_processes_stopped(descendants)
+            assert await asyncio.wait_for(owner.wait(), 2) == -signal.SIGKILL
+            await _wait_owned_processes_stopped(descendants)
+            # A hard-killed backend cannot remove config; its replacement must
+            # reuse this state directory and the same proxy name/public port.
+            assert (tmp_path / "state" / "frp" / "frpc.toml").exists()
+            try:
+                _, writer = await asyncio.wait_for(asyncio.open_connection("127.0.0.1", public_port), 1)
+            except (OSError, TimeoutError):
+                pass
+            else:
+                writer.close()
+                await writer.wait_closed()
+                pytest.fail("Native listener survived backend SIGKILL")
+        finally:
+            if owner.returncode is None:
+                with suppress(psutil.NoSuchProcess):
+                    descendants.extend(psutil.Process(owner.pid).children(recursive=True))
+                owner.kill()
+                await asyncio.wait_for(owner.wait(), 2)
+            for child in reversed(descendants):
+                with suppress(psutil.NoSuchProcess):
+                    child.kill()
+            await _wait_owned_processes_stopped(descendants)
+
+
+async def _wait_native_listener(ready, owner):
+    deadline = asyncio.get_running_loop().time() + 8
+    while asyncio.get_running_loop().time() < deadline:
+        try:
+            return json.loads(ready.read_text())
+        except (FileNotFoundError, json.JSONDecodeError):
+            assert owner.returncode is None, "Backend exited before guarded native listener was ready"
+            await asyncio.sleep(0.02)
+    pytest.fail("Default public relay did not launch its native payload")
+
+
+async def _native_roundtrip(port):
+    reader, writer = await asyncio.open_connection("127.0.0.1", port)
+    try:
+        payload = b"backend-death-proof"
+        writer.write(payload)
+        await writer.drain()
+        assert await asyncio.wait_for(reader.readexactly(len(payload)), 1) == payload
+    finally:
+        writer.close()
+        await writer.wait_closed()
 
 
 async def _wait_owned_processes_stopped(processes):

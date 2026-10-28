@@ -149,6 +149,11 @@ two configured entries. API schemas reject invalid addresses, ports and DNS name
 
 Run `pytest -q api/tests`, `npm run test --prefix web`, `npm run lint --prefix web`,
 `npm run build --prefix web`, and `pre-commit run --all-files` for local acceptance.
+`api/tests/test_relay.py` includes a real subprocess regression using a Python
+listener: kill the backend, confirm every owned process and the listener stop,
+then restart with the same state directory, proxy name and port and exchange data.
+`api/tests/test_process_guard.py` also covers individual guard/watchdog death and
+forced shutdown. These tests require no frp binary or real router.
 For a real **loopback-only** frp integration test, install matching official
 binaries outside the checkout and run:
 
@@ -158,3 +163,5 @@ PYTHONPATH=api python api/tests/integration/frp_smoke.py --bin-dir /path/to/frp
 
 That test proves native TCP/UDP integration and reconnect/process recovery; it
 does not prove connectivity through a physical home router or a deployed relay.
+The crash-recovery check finds the actual native frpc descendant and kills it,
+keeping its PID distinct from the shared guard.
