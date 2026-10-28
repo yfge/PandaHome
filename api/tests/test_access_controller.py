@@ -217,6 +217,7 @@ async def test_cgnat_without_relay_explains_setup_requirement(harness):
 
     state = runtime(harness, service_id)
     assert state["status"] == "needs_setup"
+    assert state["reason_code"] == "relay_not_configured"
     assert state["external_verified"] is False
     harness.mappings.ensure.assert_not_called()
     harness.dns.sync.assert_not_called()

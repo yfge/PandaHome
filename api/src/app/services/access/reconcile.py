@@ -61,7 +61,8 @@ class ServiceReconciler:
             return None
         if mode is None:
             save_runtime(db, row, active_mode=None, public_endpoint=None, external_verified=False)
-            await self.finish(db, row, "needs_setup", "network_unknown", None)
+            reason = "relay_not_configured" if network and network.recommended_mode == "relay" else "network_unknown"
+            await self.finish(db, row, "needs_setup", reason, None)
             return None
         save_runtime(db, row, active_mode=mode, external_verified=False, public_endpoint=None)
         if mode == "direct":
