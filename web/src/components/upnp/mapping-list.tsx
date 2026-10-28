@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { API_ENDPOINTS } from "@/config/api";
+import { mappingEndpoint } from "@/components/upnp/gateway-api";
+import { useGatewayTranslations } from "@/components/upnp/gateway-translations";
 import { UpnpMapping } from "@/types/upnp";
 import { Clock, Globe, MoreVertical, Network, Plus, Shield } from "lucide-react";
 import { DataStateCard } from "@/components/common/data-state-card";
@@ -21,8 +22,12 @@ import { useToast } from "@/components/providers/toast-provider";
 import { UpnpMappingFormDialog, type UpnpMappingDraft } from "@/components/upnp/mapping-form-dialog";
 import { UpnpMappingDeleteDialog } from "@/components/upnp/mapping-delete-dialog";
 
-export function UpnpMappingList() {
+export function UpnpMappingList({ deviceUrl, onBusyChange }: {
+  deviceUrl?: string;
+  onBusyChange?: (busy: boolean) => void;
+}) {
   const t = useTranslations("upnp");
+  const gatewayT = useGatewayTranslations();
   const [state, setState] = useState<AsyncState<UpnpMapping[]>>({ status: "loading" });
   const isUnmountedRef = useRef(false);
   const stateRef = useRef(state);
@@ -37,6 +42,11 @@ export function UpnpMappingList() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<UpnpMapping | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    onBusyChange?.(isSubmitting || isDeleting || formOpen || deleteOpen);
+    return () => onBusyChange?.(false);
+  }, [onBusyChange, isSubmitting, isDeleting, formOpen, deleteOpen]);
 
   useEffect(() => {
     isUnmountedRef.current = false;
@@ -78,9 +88,14 @@ export function UpnpMappingList() {
       }
 
       try {
-        const response = await apiClient<{ mappings?: UpnpMapping[] } | ApiEnvelope<{ mappings?: UpnpMapping[] }>>(
-          API_ENDPOINTS.upnpMappings,
+        type MappingResult = { mappings?: UpnpMapping[]; enumeration_supported?: boolean; complete?: boolean };
+        const response = await apiClient<MappingResult | ApiEnvelope<MappingResult>>(
+          mappingEndpoint(deviceUrl),
         );
+
+        const data = isApiEnvelope<MappingResult>(response) ? response.data : response;
+        if (data?.enumeration_supported === false) throw new Error(gatewayT("enumerationUnavailable"));
+        if (data?.enumeration_supported === true && data.complete === false) throw new Error(gatewayT("incomplete"));
 
         let mappings: UpnpMapping[] = [];
         if (isApiEnvelope<{ mappings?: UpnpMapping[] }>(response)) {
@@ -107,7 +122,7 @@ export function UpnpMappingList() {
         });
       }
     },
-    [setSafeState, t]
+    [setSafeState, t, deviceUrl, gatewayT]
   );
 
   const openAddDialog = useCallback(() => {
@@ -154,7 +169,7 @@ export function UpnpMappingList() {
         enabled: true,
       };
 
-      const response = await apiClient<unknown | ApiEnvelope<unknown>>(API_ENDPOINTS.upnpMappings, {
+      const response = await apiClient<unknown | ApiEnvelope<unknown>>(mappingEndpoint(deviceUrl), {
         method: "POST",
         body: payload,
       });
@@ -163,18 +178,18 @@ export function UpnpMappingList() {
         throw new Error(response.message ?? t("failed"));
       }
     },
-    [t],
+    [t, deviceUrl],
   );
 
   const deleteMapping = useCallback(
     async (externalPort: number, protocol: UpnpMapping["protocol"]) => {
-      const endpoint = `${API_ENDPOINTS.upnpMappings}/${externalPort}?protocol=${encodeURIComponent(protocol)}`;
+      const endpoint = mappingEndpoint(deviceUrl, externalPort, protocol);
       const response = await apiClient<unknown | ApiEnvelope<unknown>>(endpoint, { method: "DELETE" });
       if (isApiEnvelope(response) && response.code !== 0) {
         throw new Error(response.message ?? t("failed"));
       }
     },
-    [t],
+    [t, deviceUrl],
   );
 
   const handleSubmit = useCallback(
@@ -362,27 +377,27 @@ export function UpnpMappingList() {
               {state.data.map((mapping) => (
                 <div
                   key={mappingKey(mapping)}
-                  className="flex items-center justify-between gap-3 p-4 transition-colors hover:bg-muted/50"
+                  className="flex items-start justify-between gap-3 p-4 transition-colors hover:bg-muted/50 sm:items-center"
                 >
-                  <div className="flex flex-1 items-center gap-4">
-                    <div className="flex min-w-[180px] items-center gap-2">
-                      <Network className="text-muted-foreground h-4 w-4" />
-                      <span className="font-medium">{mapping.description || t("noDescription")}</span>
+                  <div className="flex min-w-0 flex-1 flex-col gap-2 xl:flex-row xl:items-center xl:gap-4">
+                    <div className="flex min-w-0 items-start gap-2 xl:min-w-[180px] xl:items-center">
+                      <Network className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0 xl:mt-0" />
+                      <span className="break-all font-medium">{mapping.description || t("noDescription")}</span>
                     </div>
                     <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                      <Globe className="h-4 w-4" />
-                      <span>
+                      <Globe className="h-4 w-4 shrink-0" />
+                      <span className="break-all">
                         {mapping.internal_ip}:{mapping.internal_port}
                       </span>
                     </div>
                     <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                      <Shield className="h-4 w-4" />
+                      <Shield className="h-4 w-4 shrink-0" />
                       <span>
                         {mapping.protocol}:{mapping.external_port}
                       </span>
                     </div>
                     <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4" />
+                      <Clock className="h-4 w-4 shrink-0" />
                       <span>
                         {mapping.lease_duration === 0
                           ? t("permanent")
@@ -390,7 +405,7 @@ export function UpnpMappingList() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
                     <span
                       className={`rounded-full px-2 py-1 text-xs font-medium ${
                         mapping.enabled ? "bg-emerald-500/10 text-emerald-700" : "bg-destructive/10 text-destructive"
@@ -400,7 +415,8 @@ export function UpnpMappingList() {
                     </span>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button type="button" variant="ghost" size="icon" disabled={isSubmitting || isDeleting}>
+                        <Button type="button" variant="ghost" size="icon" disabled={isSubmitting || isDeleting}
+                          aria-label={gatewayT("mappingActions", { description: mapping.description || t("noDescription") })}>
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -471,12 +487,12 @@ function MappingListSkeleton() {
       <CardContent className="p-0">
         <div className="divide-y">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-4 flex-1">
-                <Skeleton className="h-4 w-[200px]" />
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-32" />
+            <div key={i} className="flex items-center justify-between gap-3 p-4">
+              <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                <Skeleton className="h-4 w-[200px] max-w-full" />
+                <Skeleton className="h-4 w-32 max-w-full" />
+                <Skeleton className="h-4 w-24 max-w-full" />
+                <Skeleton className="h-4 w-32 max-w-full" />
               </div>
               <Skeleton className="h-6 w-16" />
             </div>

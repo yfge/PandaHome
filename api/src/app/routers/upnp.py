@@ -3,8 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from ..services.upnp import UPNPErrorCode, UPNPService, UPNPServiceError
 from ..models.response import Response
 from ..models.upnp import PortMapping
+from .upnp_gateway import router as gateway_router
 
 router = APIRouter(prefix="/api/upnp", tags=["upnp"])
+router.include_router(gateway_router)
 
 
 def get_upnp_service(request: Request) -> UPNPService:

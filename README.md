@@ -24,7 +24,7 @@ UDP needs application-level external validation. See the complete
 [setup and operations guide](docs/public-access.md).
 
 - **Dynamic DDNS**: Automatically update DNS records using Aliyun DNS API, support for multiple domains, real-time public IP sync, and custom record types.
-- **UPnP Port Mapping**: Automatically register port mappings to your router, support TCP/UDP, dynamic port management, and real-time status monitoring.
+- **UPnP Port Mapping**: Automatically register port mappings to your router, support TCP/UDP, dynamic port management, and real-time status monitoring. Administrators can [select an upstream router and configure each NAT layer](docs/upnp-multiple-routers.md) through `/api/upnp/gateways` and its inspect/mapping endpoints.
 - **Web UI**: Modern, responsive, and supports both English and Chinese.
 - **Multi-language**: Switch between English and Chinese easily.
 

@@ -1,0 +1,22 @@
+{
+  "title": "Router selection",
+  "mappingActions": "Actions for {description}",
+  "router": "Manage mappings on",
+  "default": "Default router (existing behavior)",
+  "refresh": "Discover routers",
+  "loading": "Checking routers…",
+  "deviceUrl": "Upstream router device description URL",
+  "connect": "Check and select",
+  "help": "Enter the UPnP XML device description URL, not the router's sign-in page. The router must allow UPnP access from this network.",
+  "layers": "For nested NAT, configure each router separately: on the public router, forward to the next router's WAN address; on the inner router, forward to the service's LAN address.",
+  "wan": "Router WAN address: {address}",
+  "public": "Public IPv4 reported; inbound access still needs an external test.",
+  "private": "Private WAN address: another NAT layer remains upstream.",
+  "shared": "Shared WAN address: an upstream NAT remains; operator support may be required.",
+  "unknown": "A public IPv4 address could not be confirmed.",
+  "unavailable": "unavailable",
+  "failed": "Could not check the selected router",
+  "empty": "No routers were discovered. You can enter an upstream device description URL manually.",
+  "enumerationUnavailable": "This router does not support listing mappings. You can still add a mapping; check its admin page to inspect or remove existing rules.",
+  "incomplete": "The router returned an incomplete mapping list. Open its admin page to inspect all rules."
+}

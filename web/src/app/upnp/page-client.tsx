@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { UpnpMappingList } from "@/components/upnp/mapping-list";
+import { UpnpGatewayManager } from "@/components/upnp/gateway-manager";
+import { useAuth } from "@/components/providers/auth-provider";
 
 export function UpnpPageClient() {
   const t = useTranslations("upnp");
+  const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -19,9 +22,9 @@ export function UpnpPageClient() {
   }
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="container mx-auto px-4 py-10">
       <h1 className="text-4xl font-bold mb-8">{t("title")}</h1>
-      <UpnpMappingList />
+      {user?.role === "admin" ? <UpnpGatewayManager /> : <UpnpMappingList />}
     </div>
   );
 }

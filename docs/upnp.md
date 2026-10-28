@@ -5,7 +5,9 @@ This guide explains how PandaHome manages UPnP port mappings (NAT port forwardin
 ## Prerequisites
 
 - Your router must support **UPnP IGD** (Internet Gateway Device) and have UPnP enabled.
-- PandaHome and the router must be on the **same LAN**.
+- Automatic discovery normally requires the **same LAN**. A reachable upstream
+  router can also be selected by its device description URL; see
+  [multiple-router configuration](upnp-multiple-routers.md).
 - Avoid **double NAT** (e.g., ISP modem/router + your own router) whenever possible.
 - If your ISP uses **CGNAT**, port forwarding may not work even if UPnP succeeds locally.
 

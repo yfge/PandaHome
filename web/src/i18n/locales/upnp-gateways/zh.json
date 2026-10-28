@@ -1,0 +1,22 @@
+{
+  "title": "选择路由器",
+  "mappingActions": "{description}的操作菜单",
+  "router": "管理哪台路由器的映射",
+  "default": "默认路由器（沿用现有设置）",
+  "refresh": "发现路由器",
+  "loading": "正在检查路由器…",
+  "deviceUrl": "上游路由器的 UPnP 设备描述地址",
+  "connect": "检查并选择",
+  "help": "请输入 UPnP XML 设备描述地址，而非路由器登录页面。路由器需要允许当前网络访问其 UPnP 服务。",
+  "layers": "多层 NAT 需逐台配置：公网路由器转发至下一层路由器的 WAN 地址，内层路由器再转发至服务的内网地址。",
+  "wan": "路由器 WAN 地址：{address}",
+  "public": "路由器报告公网 IPv4，仍需从外网测试入站访问。",
+  "private": "WAN 地址为私网地址，上游仍有一层 NAT。",
+  "shared": "WAN 地址为共享地址，上游仍有 NAT，可能需要运营商提供支持。",
+  "unknown": "尚未确认路由器具有公网 IPv4。",
+  "unavailable": "不可用",
+  "failed": "无法检查所选路由器",
+  "empty": "没有发现路由器，可手动输入上游路由器的设备描述地址。",
+  "enumerationUnavailable": "这台路由器不支持列出映射。仍可添加映射；查看或删除已有规则请使用路由器管理页面。",
+  "incomplete": "路由器返回的映射列表不完整，请到路由器管理页面查看全部规则。"
+}

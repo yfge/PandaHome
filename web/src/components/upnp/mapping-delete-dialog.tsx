@@ -49,12 +49,12 @@ export function UpnpMappingDeleteDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t("confirmDelete")}</DialogTitle>
           <DialogDescription>
             {t("deleteConfirmMessage")}
-            {summary ? <div className="text-muted-foreground mt-2 text-sm">{summary}</div> : null}
+            {summary ? <span className="text-muted-foreground mt-2 block text-sm">{summary}</span> : null}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
