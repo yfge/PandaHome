@@ -35,12 +35,13 @@ export function validateServiceDraft(draft: ServiceDraft): string | null {
   return null;
 }
 
-export function ServiceForm({ service, busy, error, relayAvailable, onClose, onSave }: {
+export function ServiceForm({ service, busy, error, relayAvailable, onClose, onCloseAutoFocus, onSave }: {
   service: PublishedService | null;
   busy: boolean;
   error: string | null;
   relayAvailable: boolean;
   onClose: () => void;
+  onCloseAutoFocus?: (event: Event) => void;
   onSave: (draft: ServiceDraft) => Promise<void>;
 }) {
   const t = useTranslations("access");
@@ -70,7 +71,7 @@ export function ServiceForm({ service, busy, error, relayAvailable, onClose, onS
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open && !busy) onClose(); }}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{t(service ? "editService" : "addService")}</DialogTitle>
           <DialogDescription>{t("formDescription")}</DialogDescription>

@@ -30,6 +30,15 @@ export function AccessPageClient() {
   const [deleting, setDeleting] = useState<PublishedService | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const actionControllers = useRef(new Set<AbortController>());
+  const addButtonRef = useRef<HTMLButtonElement>(null);
+  const formTriggerRef = useRef<HTMLElement | null>(null);
+  const deleteTriggerRef = useRef<HTMLElement | null>(null);
+
+  const restoreFocus = (event: Event, trigger: HTMLElement | null) => {
+    event.preventDefault();
+    const target = trigger?.isConnected ? trigger : addButtonRef.current;
+    target?.focus({ preventScroll: true });
+  };
 
   useEffect(() => {
     const controllers = actionControllers.current;
@@ -58,6 +67,7 @@ export function AccessPageClient() {
     setFormError(null);
     try {
       await request(editing ? `/services/${editing.id}` : "/services", editing ? "PUT" : "POST", draft);
+      if (!editing) formTriggerRef.current = null;
       setFormOpen(false);
       toast({ title: t("saved"), description: t("savedDescription"), variant: "success" });
       await reload();
@@ -76,13 +86,15 @@ export function AccessPageClient() {
     setDeleteError(null);
     try {
       await request(`/services/${deleting.id}`, "DELETE");
+      deleteTriggerRef.current = null;
       setDeleting(null);
       toast({ title: t("deleted"), variant: "success" });
       await reload();
     } catch (cause) { if (!(cause instanceof DOMException && cause.name === "AbortError")) setDeleteError(getErrorMessage(cause)); }
     finally { setBusyId(null); }
   };
-  const openForm = (service: PublishedService | null) => {
+  const openForm = (service: PublishedService | null, trigger: HTMLElement | null) => {
+    formTriggerRef.current = trigger;
     setEditing(service);
     setFormError(null);
     setFormOpen(true);
@@ -95,7 +107,7 @@ export function AccessPageClient() {
           <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">{t("description")}</p>
         </div>
-        <Button onClick={() => openForm(null)} disabled={!data}>
+        <Button ref={addButtonRef} onClick={(event) => openForm(null, event.currentTarget)} disabled={!data}>
           <Plus aria-hidden="true" />{t("addService")}</Button>
       </header>
       {error ? <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
@@ -117,12 +129,35 @@ export function AccessPageClient() {
             <h2 id="access-services-title" className="text-xl font-semibold">{t("servicesTitle")}</h2>
             <p className="text-xs text-muted-foreground">{t("maintenanceNote", { seconds: data.poll_interval_seconds })}</p>
           </div>
-          {data.services.length ? <div className="grid items-start gap-4 lg:grid-cols-2">{data.services.map((service) => <ServiceCard key={service.id} service={service} busy={busyId !== null} onEdit={() => openForm(service)} onDelete={() => { setDeleting(service); setDeleteError(null); }} onCheck={() => void check(service)} />)}</div> : <DataStateCard title={t("emptyTitle")} description={t("emptyDescription")} action={{ label: t("addService"), onClick: () => openForm(null) }} />}
+          {data.services.length ? (
+            <div className="grid items-start gap-4 lg:grid-cols-2">
+              {data.services.map((service) => (
+                <ServiceCard
+                  key={service.id}
+                  service={service}
+                  busy={busyId !== null}
+                  onEdit={(event) => openForm(service, event.currentTarget)}
+                  onDelete={(event) => {
+                    deleteTriggerRef.current = event.currentTarget;
+                    setDeleting(service);
+                    setDeleteError(null);
+                  }}
+                  onCheck={() => void check(service)}
+                />
+              ))}
+            </div>
+          ) : (
+            <DataStateCard
+              title={t("emptyTitle")}
+              description={t("emptyDescription")}
+              action={{ label: t("addService"), onClick: (event) => openForm(null, event.currentTarget) }}
+            />
+          )}
         </section>
       </> : null}
-      {formOpen ? <ServiceForm service={editing} busy={saving} error={formError} relayAvailable={data?.relay.available ?? false} onClose={() => setFormOpen(false)} onSave={save} /> : null}
+      {formOpen ? <ServiceForm service={editing} busy={saving} error={formError} relayAvailable={data?.relay.available ?? false} onClose={() => setFormOpen(false)} onCloseAutoFocus={(event) => restoreFocus(event, formTriggerRef.current)} onSave={save} /> : null}
       <Dialog open={Boolean(deleting)} onOpenChange={(open) => { if (!open && busyId === null) setDeleting(null); }}>
-        <DialogContent>
+        <DialogContent onCloseAutoFocus={(event) => restoreFocus(event, deleteTriggerRef.current)}>
           <DialogHeader>
             <DialogTitle>{t("deleteTitle")}</DialogTitle>
             <DialogDescription>{t("deleteDescription", { name: deleting?.name ?? "" })}</DialogDescription>

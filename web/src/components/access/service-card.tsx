@@ -1,5 +1,6 @@
 "use client";
 
+import type { MouseEvent } from "react";
 import { Copy, Pencil, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 
@@ -19,8 +20,8 @@ export function serviceDisplayStatus(service: PublishedService): string {
 export function ServiceCard({ service, busy, onEdit, onDelete, onCheck }: {
   service: PublishedService;
   busy: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit: (event: MouseEvent<HTMLButtonElement>) => void;
+  onDelete: (event: MouseEvent<HTMLButtonElement>) => void;
   onCheck: () => void;
 }) {
   const t = useTranslations("access");
