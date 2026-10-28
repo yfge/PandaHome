@@ -7,6 +7,14 @@ chats and the public-access owner's final delivery of all remaining shared files
 The user's final instruction assigns coding and commits to the Access owner;
 the project manager retains coordination and independent acceptance only.
 
+The PM directly edited shared code and UI earlier and acknowledged exceeding the
+agreed division of responsibilities. After the user's coordination/review-only
+instruction, the PM stopped implementation, handed existing drafts to their
+owners for independent review, validation and submission, and thereafter only
+coordinated, reviewed read-only and ran isolated acceptance checks. The full
+role timeline is recorded in `docs/integration-review.md`; current delivery
+ownership remains with Access.
+
 ## Changes
 
 - `docs/integration-review.md`: ownership, acceptance gates and evidence limits.

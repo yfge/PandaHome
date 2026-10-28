@@ -21,6 +21,11 @@ local, cloud DNS and public recursive DNS evidence.
   owner's separate real cloud lifecycle without replacing its evidence.
 - `agent_chats/20261028-173512-final-shared-acceptance.md`: final delivery,
   validation, cleanup and review record for this documentation unit.
+- Subsequent role-only clarification in `docs/integration-review.md`,
+  `agent_chats/20261028-154200-integration-review.md` and this log: preserve the
+  PM's early direct shared-code/UI edits and acknowledged scope overrun, followed
+  by the user's restriction, owner handoff and later review-only role. All
+  remaining delivery and commits stay with Access.
 
 Earlier shared changes were independently reviewed and delivered in these
 normal, individually gated commits:
@@ -59,6 +64,13 @@ configured/default database path or real router mapping was changed.
 
 ## Verification
 
+- The complete seven-path documentation unit was delivered as `5ac13c2` through
+  normal hooks after independent UE/UI sign-off. The subsequent role-timeline
+  correction changes only the three Markdown records named above and also uses
+  normal commit hooks. Product code remains identical to `4efe286`; the original
+  373/103 test, build/type and all-files-hook evidence below remains applicable.
+  Follow-up HEAD, exact paths, hashes and clean-state checks are recorded in
+  `final-acceptance-20261028/role-timeline-followup.json` outside the checkout.
 - Final product source: `4efe286d9afc595f440adfd258fbf354ab6127f2`. A 189-file
   fingerprint comparison against `2ef29ac` found only the UPnP source/test changes;
   backend implementation and the DDNS live-tested code remain identical.

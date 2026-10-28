@@ -20,6 +20,17 @@ The user's final delivery instruction assigns all remaining shared changes and
 commits to the public-access owner, with the project manager retaining independent
 review. Historical ownership descriptions do not override that assignment.
 
+## Role timeline
+
+Early in this work, the PM directly edited shared code and UI and acknowledged
+that this exceeded the agreed division of responsibilities. After the user
+required coordination and review only, the PM stopped implementation work and
+handed existing drafts to the responsible owners for independent review,
+validation and submission. From that correction onward, the PM performed
+coordination, read-only review and isolated acceptance checks. All remaining
+shared code, documentation and commits were delivered by the Access owner;
+this clarification assigns no new coding, documentation or commit work to the PM.
+
 ## Acceptance gates
 
 1. Correctness: deterministic network classifications; explicit gateway failures
