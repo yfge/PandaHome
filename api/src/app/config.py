@@ -46,6 +46,17 @@ class Settings(BaseSettings):
     RELAY_TOKEN: SecretStr = SecretStr("")
     RELAY_STATE_DIR: Path = Field(default_factory=lambda: Path.home() / ".local/state/pandahome")
 
+    # P2P has a separate client and credentials from publicly published services.
+    P2P_SERVER_ADDR: str = ""
+    P2P_SERVER_PORT: int = Field(default=7000, ge=1, le=65535)
+    P2P_TOKEN: SecretStr = SecretStr("")
+    P2P_BINARY: str = "frpc"
+    P2P_STATE_DIR: Path = Field(default_factory=lambda: Path.home() / ".local/state/pandahome")
+    P2P_STUN_SERVER: str = "stun.easyvoip.com:3478"
+    P2P_FALLBACK_TIMEOUT_MS: int = Field(default=1500, ge=100, le=30000)
+    P2P_RETRY_INTERVAL_SECONDS: int = Field(default=10, ge=1, le=300)
+    P2P_TLS_TRUSTED_CA_FILE: str = ""
+    P2P_TLS_SERVER_NAME: str = ""
 
 
 settings = Settings()

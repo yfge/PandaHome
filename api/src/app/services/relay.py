@@ -184,13 +184,15 @@ class FrpRelay:
             result = await self._status_client.registration(self._registration_names)
             return result if self._process.returncode is None else dict.fromkeys(result, False)
 
+    def _process_command(self, binary: str) -> tuple[str, ...]:
+        """Allow a transport adapter to supervise its child without shell parsing."""
+        return binary, "-c", str(self._config_path)
+
     async def _start(self, binary: str) -> None:
         # Shield creation so cancellation cannot lose the handle to a new child.
         spawn = asyncio.create_task(
             asyncio.create_subprocess_exec(
-                binary,
-                "-c",
-                str(self._config_path),
+                *self._process_command(binary),
                 stdin=asyncio.subprocess.DEVNULL,
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.DEVNULL,

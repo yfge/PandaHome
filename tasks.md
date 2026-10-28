@@ -1,5 +1,14 @@
 # PandaHome Task Backlog
 
+## Feature 08: Private P2P TCP Access
+
+Owner: PandaHome maintainers / Codex. Design and operations: `docs/p2p.md`.
+
+- [x] Implement persisted XTCP service intent, encrypted STCP fallback, isolated frpc lifecycle and periodic recovery.
+- [x] Add active-admin CRUD, key rotation, protected visitor/CA downloads and a localized `/p2p` management page.
+- [x] Verify API authorization, provider recovery, native frp configuration/data transfer, migrations and frontend production build.
+- [ ] Validate real direct traversal between separate networks using the deployment's frps/STUN configuration; local validation cannot close this item.
+
 ## Feature 07: Managed Public Services
 
 Owner: PandaHome maintainers / Codex. Design: `docs/public-access.md`.

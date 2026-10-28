@@ -8,6 +8,7 @@ from sqlalchemy import engine_from_config, pool
 from src.app.config import settings
 from src.app.models.db_models import Base
 from src.app.models import published_service  # noqa: F401
+from src.app.models import p2p_service  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

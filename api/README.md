@@ -46,3 +46,16 @@ api/
 ├── pyproject.toml  # 项目配置
 └── README.md       # 项目文档
 ```
+
+## P2P 打洞
+
+后端通过官方 `frpc` 管理 XTCP TCP 服务，可选择 STCP 自动中继回退。
+先提供公网 `frps`，在 `.env` 设置 `P2P_SERVER_ADDR`、`P2P_SERVER_PORT`、
+`P2P_TOKEN`、`P2P_BINARY`，并按需配置 TLS CA 与 STUN；全部变量见
+[.env.example](.env.example)。在 `api/` 执行 `alembic upgrade head` 创建
+`p2p_services` 表，后端启动时恢复已启用服务。
+
+管理页面为 `/p2p`，`/api/p2p` 的读取、CRUD、协调、轮换密钥与 visitor/CA
+下载接口均要求有效管理员。visitor TOML 含共享 frps token 和服务访问密钥，
+需私密保存；访问者需要自行运行 `frpc`，连接本机回环端口。
+配置步骤、运行命令、完整 API 路由和验证边界见 [P2P 文档](../docs/p2p.md)。

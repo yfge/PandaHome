@@ -157,6 +157,20 @@ See `docs/upnp.md` for router prerequisites, troubleshooting tips, and security 
 
 See `docs/domains.md` for Aliyun access key setup, required permissions, and rate limit troubleshooting.
 
+### P2P access
+
+Administrators can manage TCP services at `/p2p` using native frp XTCP hole
+punching, with optional automatic STCP relay fallback. A reachable `frps` server
+and `frpc` on both the home server and the visitor's computer are required.
+Configure the independent `P2P_*` settings in `api/.env`, run `alembic upgrade head`
+from `api/`, then download a visitor configuration from the page. The visitor
+connects through a local `127.0.0.1` port; a running provider process does not
+prove that a direct connection has succeeded.
+
+The active-admin `/api/p2p` endpoints manage services, reconcile processes, rotate
+keys and download credential-bearing visitor TOML. See [P2P setup and API](docs/p2p.md)
+for server/client commands, TLS trust, firewall requirements and connection evidence.
+
 ## License
 
 MIT

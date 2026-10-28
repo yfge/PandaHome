@@ -154,6 +154,18 @@ npm run dev --prefix web
 
 阿里云 DNS 的 AccessKey 配置、最小权限与限流排查请参考 `docs/domains.md`。
 
+### P2P 打洞访问
+
+管理员可在 `/p2p` 管理 TCP 服务，通过官方 frp XTCP 尝试打洞，并按服务选择
+是否在失败时自动回退到 STCP 中继。需要可达的公网 `frps`，以及家庭侧和访问侧
+的 `frpc`。在 `api/.env` 配置独立的 `P2P_*` 变量，在 `api/` 执行
+`alembic upgrade head`，然后在页面下载 visitor 配置。访问者运行客户端后，
+通过本机 `127.0.0.1` 端口连接；家庭侧进程运行并不代表已经打洞成功。
+
+`/api/p2p` 下的服务管理、立即协调、密钥轮换和 visitor 配置下载接口均要求
+有效管理员身份，下载的 TOML 含访问凭据。服务端与客户端运行命令、TLS 信任、
+防火墙条件及结果判断见 [P2P 配置与 API 说明](docs/p2p.md)。
+
 ## 许可证
 
 MIT

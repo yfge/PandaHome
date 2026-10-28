@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 
+import { useP2pTranslations } from "@/components/p2p/translations";
 import { useAuth } from "@/components/providers/auth-provider";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +12,7 @@ export function MainNav() {
   const pathname = usePathname();
   const t = useTranslations("common");
   const { token } = useAuth();
+  const p2p = useP2pTranslations();
 
   return (
     <nav aria-label={t("navigation")} className="flex min-w-0 flex-1 items-center gap-4 overflow-x-auto py-3 pr-4 whitespace-nowrap lg:gap-6">
@@ -33,6 +35,15 @@ export function MainNav() {
             )}
           >
             {t("access")}
+          </Link>
+          <Link
+            href="/p2p"
+            className={cn(
+              "text-sm font-medium transition-colors hover:text-primary",
+              pathname === "/p2p" ? "text-primary" : "text-muted-foreground"
+            )}
+          >
+            {p2p("navigation")}
           </Link>
           <Link
             href="/status"
