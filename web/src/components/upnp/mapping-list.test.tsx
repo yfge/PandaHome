@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -59,6 +59,45 @@ describe("UPnP mapping dialogs", () => {
     expect(screen.getByRole("link", { name: "Home" })).not.toHaveFocus();
   });
 
+  it.each([
+    ["Add", "Escape"], ["Add", "Cancel"],
+    ["Edit", "Escape"], ["Edit", "Cancel"],
+    ["Delete", "Escape"], ["Delete", "Cancel"],
+  ])("restores %s during %s closure before another key, without a late focus reset", async (action, dismiss) => {
+    const readStyle = window.getComputedStyle.bind(window);
+    vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
+      const style = readStyle(element, pseudo);
+      if (!["dialog-content", "dialog-overlay"].includes(element.getAttribute("data-slot") ?? "")) return style;
+      // Model the real CSS exit animation, which jsdom does not otherwise run.
+      return new Proxy(style, { get: (target, key) => key === "animationName"
+        ? element.getAttribute("data-state") === "closed" ? "dialog-exit" : "dialog-enter"
+        : Reflect.get(target, key) });
+    });
+    const user = userEvent.setup();
+    mount();
+    const actions = await screen.findByRole("button", { name: "Actions for NAS" });
+    let trigger: HTMLElement = screen.getByRole("button", { name: "Add Mapping" });
+    if (action !== "Add") {
+      actions.focus();
+      await user.keyboard("{Enter}");
+      trigger = await screen.findByRole("menuitem", { name: action });
+    }
+    trigger.focus();
+    await user.keyboard("{Enter}");
+    const dialog = await screen.findByRole("dialog");
+    if (dismiss === "Escape") fireEvent.keyDown(dialog, { key: "Escape", code: "Escape" });
+    else fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    await user.tab();
+    const next = action === "Add" ? actions : screen.getByRole("menuitem", { name: action === "Edit" ? "Delete" : "Edit" });
+    if (action !== "Add") await user.keyboard(action === "Edit" ? "{ArrowDown}" : "{ArrowUp}");
+    expect(next).toHaveFocus();
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(next).toHaveFocus();
+    expect(screen.getByRole("link", { name: "Home", hidden: true })).not.toHaveFocus();
+  });
+
   it("returns to the empty-list Add entry when that entry opened the dialog", async () => {
     const user = userEvent.setup();
     mount([]);
@@ -108,6 +147,49 @@ describe("UPnP mapping dialogs", () => {
       headers: { "Content-Type": "application/json" },
     }));
     await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it("does not steal later navigation when a disabled opener becomes available", async () => {
+    const user = userEvent.setup();
+    mount();
+    await screen.findByRole("button", { name: "Actions for NAS" });
+    let finish: (response: Response) => void = () => {};
+    vi.mocked(fetch).mockImplementationOnce(() => new Promise<Response>((resolve) => { finish = resolve; }));
+    await user.click(screen.getByRole("button", { name: "Add Mapping" }));
+    await user.type(screen.getByLabelText("Internal IP"), "192.168.1.11");
+    await user.type(screen.getByLabelText("Internal port"), "80");
+    await user.type(screen.getByLabelText("External port"), "9090");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.keyboard("{Escape}");
+    const home = screen.getByRole("link", { name: "Home" });
+    home.focus();
+    finish(new Response(JSON.stringify({ code: 0, data: { status: "success" } }), {
+      headers: { "Content-Type": "application/json" },
+    }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Add Mapping" })).toBeEnabled());
+    expect(home).toHaveFocus();
+  });
+
+  it.each(["Edit", "Delete"])("defers a disabled %s menu opener and restores it after a failed write", async (action) => {
+    const user = userEvent.setup();
+    mount();
+    await user.click(await screen.findByRole("button", { name: "Actions for NAS" }));
+    const item = await screen.findByRole("menuitem", { name: action });
+    await user.click(item);
+    const dialog = await screen.findByRole("dialog");
+    let finish: (response: Response) => void = () => {};
+    vi.mocked(fetch).mockImplementationOnce(() => new Promise<Response>((resolve) => { finish = resolve; }));
+    await user.click(within(dialog).getByRole("button", { name: action === "Edit" ? "Save" : "Delete" }));
+    expect(item).toHaveAttribute("aria-disabled", "true");
+    const focus = vi.spyOn(item, "focus");
+    fireEvent.keyDown(dialog, { key: "Escape", code: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(focus).not.toHaveBeenCalled();
+    finish(new Response(JSON.stringify({ detail: "Gateway unavailable" }), {
+      status: 503, headers: { "Content-Type": "application/json" },
+    }));
+    await waitFor(() => expect(item).toHaveFocus());
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true });
   });
 
   it("shows an add failure inside the dialog, keeps the full draft and retries the same request", async () => {
@@ -201,8 +283,16 @@ describe("UPnP mapping dialogs", () => {
     await user.keyboard("{Enter}");
     dialog = await screen.findByRole("dialog", { name: "Confirm Delete" });
     expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(JSON.stringify({ code: 0, data: { status: "success" } }), {
+        headers: { "Content-Type": "application/json" },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ code: 0, data: { mappings: [] } }), {
+        headers: { "Content-Type": "application/json" },
+      }));
     await user.click(within(dialog).getByRole("button", { name: "Delete" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === "DELETE")).toHaveLength(2);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Add Mapping" })).toHaveFocus());
   });
 });

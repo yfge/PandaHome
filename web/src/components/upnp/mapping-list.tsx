@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,6 +35,8 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
   const formTriggerRef = useRef<HTMLElement | null>(null);
   const deleteTriggerRef = useRef<HTMLElement | null>(null);
   const pendingFocusRef = useRef<HTMLElement | null>(null);
+  const formWasOpenRef = useRef(false);
+  const deleteWasOpenRef = useRef(false);
 
   const { toast } = useToast();
 
@@ -55,11 +57,10 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
   const [deleteTarget, setDeleteTarget] = useState<UpnpMapping | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const restoreDialogFocus = useCallback((event: Event, trigger: HTMLElement | null) => {
-    event.preventDefault();
+  const restoreDialogFocus = useCallback((trigger: HTMLElement | null) => {
     if (isUnmountedRef.current) return;
     const target = trigger?.isConnected ? trigger : addButtonRef.current;
-    if (target?.matches(":disabled")) {
+    if (target?.matches(':disabled, [aria-disabled="true"], [data-disabled]')) {
       // A successful write may close the dialog before its list refresh ends.
       pendingFocusRef.current = target;
     } else {
@@ -68,11 +69,22 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
     }
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    // Restore during close rendering; a deferred Radix callback must not reset Tab.
+    if (formWasOpenRef.current && !formOpen) restoreDialogFocus(formTriggerRef.current);
+    if (deleteWasOpenRef.current && !deleteOpen) restoreDialogFocus(deleteTriggerRef.current);
+    formWasOpenRef.current = formOpen;
+    deleteWasOpenRef.current = deleteOpen;
+  }, [formOpen, deleteOpen, restoreDialogFocus]);
+
+  useLayoutEffect(() => {
     if (isSubmitting || isDeleting || !pendingFocusRef.current) return;
-    const target = pendingFocusRef.current;
+    const pending = pendingFocusRef.current;
     pendingFocusRef.current = null;
-    if (target.isConnected) target.focus({ preventScroll: true });
+    // A user who already continued navigation owns the new focus.
+    if (document.activeElement !== document.body) return;
+    const target = pending.isConnected ? pending : addButtonRef.current;
+    target?.focus({ preventScroll: true });
   }, [isSubmitting, isDeleting]);
 
   useEffect(() => {
@@ -484,24 +496,24 @@ export function UpnpMappingList({ deviceUrl, onBusyChange }: {
         </Card>
       ) : null}
 
-      <UpnpMappingFormDialog
+      {formOpen ? <UpnpMappingFormDialog
         mode={formMode}
         open={formOpen}
         onOpenChange={closeFormDialog}
-        onCloseAutoFocus={(event) => restoreDialogFocus(event, formTriggerRef.current)}
+        onCloseAutoFocus={(event) => event.preventDefault()}
         initialValues={formInitialValues}
         isSubmitting={isSubmitting}
         onSubmit={handleSubmit}
-      />
+      /> : null}
 
-      <UpnpMappingDeleteDialog
+      {deleteOpen ? <UpnpMappingDeleteDialog
         open={deleteOpen}
         onOpenChange={closeDeleteDialog}
-        onCloseAutoFocus={(event) => restoreDialogFocus(event, deleteTriggerRef.current)}
+        onCloseAutoFocus={(event) => event.preventDefault()}
         mapping={deleteTarget}
         isDeleting={isDeleting}
         onConfirm={confirmDelete}
-      />
+      /> : null}
     </div>
   );
 }
