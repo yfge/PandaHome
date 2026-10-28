@@ -11,7 +11,7 @@ from pydantic import ValidationError
 from src.app.auth.auth import create_access_token
 from src.app.main import app
 from src.app.schemas.upnp_gateway import GatewayInfo, GatewayMappingCreate, GatewayTarget
-from src.app.services import upnp_gateway
+from src.app.services import upnp as legacy_upnp, upnp_gateway
 from src.app.services.upnp_gateway import GatewayError, address_scope, open_gateway
 
 OUTER = "http://192.168.1.1:5000/rootDesc.xml"
@@ -75,7 +75,7 @@ def routers(monkeypatch):
         INNER: SimpleNamespace(all_services=[inner], friendly_name="Inner router"),
     }
     create = AsyncMock(side_effect=lambda location: devices[location])
-    monkeypatch.setattr(upnp_gateway, "UpnpFactory", lambda requester: SimpleNamespace(async_create_device=create))
+    monkeypatch.setattr(upnp_gateway, "UpnpFactory", lambda requester, **kwargs: SimpleNamespace(async_create_device=create))
     default_service = SimpleNamespace(
         devices=[{"LOCATION": INNER}, {"location": OUTER}, {"location": OUTER}],
         gateway_info={"ip": "192.168.2.1"}, interface_ip="192.168.2.10",
@@ -275,7 +275,7 @@ async def test_client_sessions_close_on_failure(monkeypatch):
         return result
 
     monkeypatch.setattr(upnp_gateway.aiohttp, "ClientSession", session)
-    monkeypatch.setattr(upnp_gateway, "UpnpFactory", lambda requester: SimpleNamespace(
+    monkeypatch.setattr(upnp_gateway, "UpnpFactory", lambda requester, **kwargs: SimpleNamespace(
         async_create_device=AsyncMock(side_effect=OSError("unreachable")),
     ))
     with pytest.raises(GatewayError):
@@ -295,7 +295,7 @@ async def test_operation_deadline_cancels_a_stalled_device_load(monkeypatch):
         finally:
             cancelled.set()
 
-    monkeypatch.setattr(upnp_gateway, "UpnpFactory", lambda requester: SimpleNamespace(async_create_device=stalled))
+    monkeypatch.setattr(upnp_gateway, "UpnpFactory", lambda requester, **kwargs: SimpleNamespace(async_create_device=stalled))
     with pytest.raises(GatewayError) as failure:
         async with open_gateway(OUTER):
             pytest.fail("Timed-out IGD was opened")
@@ -376,3 +376,97 @@ def test_url_preserves_device_description_query():
     assert str(GatewayTarget(device_url=f"{OUTER}?device=1").device_url) == f"{OUTER}?device=1"
     with pytest.raises(ValidationError):
         GatewayTarget(device_url="not a URL")
+
+
+# Actual Huawei WANIPConnection:1 reply: u is used but only u0 is declared.
+HUAWEI_DELETE_RESPONSE = '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body>\n<u:DeletePortMappingResponse xmlns:u0="urn:schemas-upnp-org:service:WANIPConnection:1"></u:DeletePortMappingResponse>\r\n</s:Body> </s:Envelope>'
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("client_kind", ["explicit", "legacy"])
+@pytest.mark.parametrize(("reply", "http_status", "expected_error"), [
+    (HUAWEI_DELETE_RESPONSE, 200, None),
+    ("<s:Envelope xmlns:s='http://schemas.xmlsoap.org/soap/envelope/'>"
+     "<s:Body><s:Fault><faultcode>s:Client</faultcode><detail>"
+     "<UPnPError xmlns='urn:schemas-upnp-org:control-1-0'>"
+     "<errorCode>714</errorCode><errorDescription>NoSuchEntryInArray</errorDescription>"
+     "</UPnPError></detail></s:Fault></s:Body></s:Envelope>", 500, 404),
+    ("<s:Envelope xmlns:s='http://schemas.xmlsoap.org/soap/envelope/'>"
+     "<s:Body><s:Fault><faultcode>s:Client</faultcode><detail>"
+     "<UPnPError xmlns='urn:schemas-upnp-org:control-1-0'>"
+     "<errorCode>718</errorCode><errorDescription>ConflictInMappingEntry</errorDescription>"
+     "</UPnPError></detail></s:Fault></s:Body></s:Envelope>", 500, 409),
+    ("not an XML response", 200, 502),
+], ids=["vendor-namespace", "missing-fault", "conflict-fault", "broken-response"])
+async def test_router_delete_response_namespace_compatibility(reply, http_status, expected_error, client_kind, monkeypatch):
+    device = """<root xmlns="urn:schemas-upnp-org:device-1-0"><specVersion><major>1</major><minor>0</minor></specVersion>
+      <device><deviceType>urn:schemas-upnp-org:device:InternetGatewayDevice:1</deviceType>
+      <friendlyName>Test IGD</friendlyName><manufacturer>Test</manufacturer><modelName>Test</modelName>
+      <UDN>uuid:test-gateway</UDN><serviceList><service>
+      <serviceType>urn:schemas-upnp-org:service:WANIPConnection:1</serviceType>
+      <serviceId>urn:upnp-org:serviceId:WANIPConn1</serviceId><SCPDURL>/service.xml</SCPDURL>
+      <controlURL>/control</controlURL><eventSubURL>/events</eventSubURL>
+      </service></serviceList></device></root>"""
+    arguments = [("NewRemoteHost", "string"), ("NewExternalPort", "ui2"), ("NewProtocol", "string")]
+    scpd = '<scpd xmlns="urn:schemas-upnp-org:service-1-0"><specVersion><major>1</major><minor>0</minor></specVersion>'
+    scpd += '<actionList><action><name>DeletePortMapping</name><argumentList>'
+    scpd += "".join(f"<argument><name>{name}</name><direction>in</direction>"
+                    f"<relatedStateVariable>{name}</relatedStateVariable></argument>" for name, _ in arguments)
+    scpd += '</argumentList></action></actionList><serviceStateTable>'
+    scpd += "".join(f'<stateVariable sendEvents="no"><name>{name}</name><dataType>{kind}</dataType>'
+                    '</stateVariable>' for name, kind in arguments)
+    scpd += '</serviceStateTable></scpd>'
+    requests = []
+
+    async def serve(request):
+        if request.method == "POST":
+            requests.append({"action": request.headers.get("SOAPAction"), "body": await request.text()})
+            return web.Response(text=reply, status=http_status, content_type="text/xml")
+        return web.Response(text=device if request.path == "/device.xml" else scpd, content_type="text/xml")
+
+    server = web.Application()
+    server.router.add_route("*", "/{path:.*}", serve)
+    runner = web.AppRunner(server)
+    await runner.setup()
+    site = web.TCPSite(runner, "127.0.0.1", 0)
+    await site.start()
+    port = site._server.sockets[0].getsockname()[1]
+    try:
+        async def remove():
+            if client_kind == "explicit":
+                async with open_gateway(f"http://127.0.0.1:{port}/device.xml") as gateway:
+                    return await gateway.delete_mapping(58471, "TCP")
+            monkeypatch.setattr(legacy_upnp, "netifaces", SimpleNamespace(
+                AF_INET=2, gateways=lambda: {"default": {2: ("127.0.0.1", "lo0")}},
+                interfaces=lambda: ["lo0"], ifaddresses=lambda _: {2: [{"addr": "127.0.0.1"}]},
+            ))
+            monkeypatch.setenv("UPNP_INTERFACE", "127.0.0.1")
+
+            async def discovered(callback, **kwargs):
+                await callback({"LOCATION": f"http://127.0.0.1:{port}/device.xml"})
+
+            monkeypatch.setattr(legacy_upnp, "async_search", discovered)
+            service = legacy_upnp.UPNPService()
+            try:
+                await service.initialize()
+                assert service.initialized
+                service._mappings_cache = {"mappings": [{"external_port": 58471, "protocol": "TCP"}]}
+                service._last_mappings_update = legacy_upnp.time.time()
+                return await service.delete_port_mapping(58471, "TCP")
+            finally:
+                await service.shutdown()
+
+        if expected_error is None:
+            assert (await remove())["status"] == "success"
+        elif client_kind == "explicit":
+            with pytest.raises(GatewayError) as failure:
+                await remove()
+            assert failure.value.status_code == expected_error
+        else:
+            with pytest.raises(legacy_upnp.UPNPServiceError) as failure:
+                await remove()
+            assert failure.value.code == legacy_upnp.UPNPErrorCode.ACTION_FAILED
+        assert len(requests) == 1 and "#DeletePortMapping" in requests[0]["action"]
+        assert "<NewExternalPort>58471</NewExternalPort>" in requests[0]["body"]
+    finally:
+        await runner.cleanup()

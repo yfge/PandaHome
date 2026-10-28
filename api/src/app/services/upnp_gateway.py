@@ -141,7 +141,7 @@ async def open_gateway(device_url: str):
         async with asyncio.timeout(OPERATION_TIMEOUT_SECONDS), aiohttp.ClientSession(
             timeout=aiohttp.ClientTimeout(total=HTTP_TIMEOUT_SECONDS), trust_env=False,
         ) as session:
-            factory = UpnpFactory(AiohttpSessionRequester(session, timeout=HTTP_TIMEOUT_SECONDS))
+            factory = UpnpFactory(AiohttpSessionRequester(session, timeout=HTTP_TIMEOUT_SECONDS), non_strict=True)
             try:
                 device = await factory.async_create_device(device_url)
                 service = find_wan_service(device)

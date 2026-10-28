@@ -132,7 +132,7 @@ class UPNPService:
             self.session = aiohttp.ClientSession()
             # 创建requester
             requester = AiohttpSessionRequester(self.session)
-            self.upnp = UpnpFactory(requester)
+            self.upnp = UpnpFactory(requester, non_strict=True)
 
             # 保存网关信息
             self.gateway_info = {
