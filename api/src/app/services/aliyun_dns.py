@@ -79,6 +79,9 @@ class AliyunDNSService:
             settings.ALIYUN_ACCESS_KEY_ID,
             settings.ALIYUN_ACCESS_KEY_SECRET,
             settings.ALIYUN_REGION_ID,
+            connect_timeout=3,
+            timeout=5,
+            auto_retry=False,
         )
 
     def _require_client(self) -> AcsClient:
@@ -120,22 +123,35 @@ class AliyunDNSService:
             raise
 
     def get_domain_records(self, domain_name: str) -> list[DomainRecord]:
-        """获取域名解析记录"""
-        request = DescribeDomainRecordsRequest()
-        request.set_accept_format('json')
-        request.set_DomainName(domain_name)
-
+        """List the complete zone before callers decide whether a record exists."""
         try:
             logger.info(f"AliyunDNS: listing records domain={domain_name}")
-            response = self._require_client().do_action_with_exception(request)
-            response_data = json.loads(response)
-            record_payload = response_data.get("DomainRecords", {}).get("Record") or []
-            if isinstance(record_payload, dict):
-                records_raw = [record_payload]
-            else:
-                records_raw = list(record_payload)
-
-            records: list[DomainRecord] = [DomainRecord.model_validate(item) for item in records_raw]
+            records: list[DomainRecord] = []
+            seen: set[str] = set()
+            page_number, page_size = 1, 500
+            while True:
+                request = DescribeDomainRecordsRequest()
+                request.set_accept_format("json")
+                request.set_DomainName(domain_name)
+                request.set_PageNumber(page_number)
+                request.set_PageSize(page_size)
+                response_data = json.loads(self._require_client().do_action_with_exception(request))
+                payload = response_data.get("DomainRecords", {}).get("Record") or []
+                page = [DomainRecord.model_validate(item) for item in ([payload] if isinstance(payload, dict) else payload)]
+                if any(item.RecordId in seen for item in page) or len({item.RecordId for item in page}) != len(page):
+                    raise AliyunDNSError(AliyunDNSErrorCode.REQUEST_FAILED, "DNS record listing changed; please retry.")
+                records.extend(page)
+                seen.update(item.RecordId for item in page)
+                total = response_data.get("TotalCount")
+                if total is not None and len(records) >= int(total):
+                    break
+                if not page:
+                    if total is not None:
+                        raise AliyunDNSError(AliyunDNSErrorCode.REQUEST_FAILED, "DNS record listing is incomplete; please retry.")
+                    break
+                if total is None and len(page) < page_size:
+                    break
+                page_number += 1
             logger.info(f"AliyunDNS: listed records domain={domain_name} count={len(records)}")
             return records
         except (ClientException, ServerException) as e:

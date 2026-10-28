@@ -4,6 +4,25 @@ A lazy developer's solution for home server management, featuring dynamic DDNS (
 
 ## Features
 
+### Managed public services
+
+Open **Public access** (`/access`) as an administrator to publish an existing LAN
+service. Automatic mode detects public IPv4, upstream NAT, CGNAT or insufficient
+evidence, then maintains either UPnP + optional Aliyun DDNS or a native frp relay.
+Services are persisted and restored without keeping the browser open; mapping
+leases, changed IPs, failed checks and relay exits are retried automatically.
+
+Run `cd api && alembic upgrade head` before starting the API. For relay access,
+install the official `frpc` binary and configure your reachable `frps` using the
+`RELAY_*` entries in `api/.env.example`. Use one API worker per database/state
+directory. No public server is installed or provisioned automatically.
+
+An accepted mapping or tunnel is shown as **awaiting external verification**.
+Optional `ACCESS_PROBE_URL` integrates a remote Prometheus blackbox exporter for
+TCP verification, and `ACCESS_ALERT_WEBHOOK` reports sustained failures/recovery.
+UDP needs application-level external validation. See the complete
+[setup and operations guide](docs/public-access.md).
+
 - **Dynamic DDNS**: Automatically update DNS records using Aliyun DNS API, support for multiple domains, real-time public IP sync, and custom record types.
 - **UPnP Port Mapping**: Automatically register port mappings to your router, support TCP/UDP, dynamic port management, and real-time status monitoring.
 - **Web UI**: Modern, responsive, and supports both English and Chinese.

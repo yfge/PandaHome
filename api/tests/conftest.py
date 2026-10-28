@@ -43,10 +43,9 @@ def db_session(tmp_db_path: str) -> Generator[Session, None, None]:
     session = TestingSessionLocal()
 
     def override_get_db() -> Generator[Session, None, None]:
-        try:
-            yield session
-        finally:
-            session.close()
+        # This fixture owns the shared session; requests must not detach objects
+        # used by later requests/assertions. Teardown closes it exactly once.
+        yield session
 
     app.dependency_overrides[get_db] = override_get_db
 
