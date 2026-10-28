@@ -11,7 +11,7 @@
 阿里云 DDNS，或使用成熟的 frp 公网中转。配置持久保存；关闭页面后仍会继续
 续期映射、同步变化的 IP、重试失败检查，并恢复异常退出的中转客户端。
 
-启动前执行 `cd api && alembic upgrade head`。使用中转时，安装官方 `frpc`，
+启动前按下方“快速开始”准备数据库。使用中转时，安装官方 `frpc`，
 并按 `api/.env.example` 的 `RELAY_*` 配置填写已准备好的公网 `frps`。
 每套数据库和状态目录只运行一个 API worker；系统不会代为购买或部署公网服务器。
 
@@ -27,7 +27,7 @@
 
 ## 技术栈
 
-- **前端**：Next.js 15（App Router）、TypeScript、Tailwind CSS 4、shadcn/ui、next-intl
+- **前端**：Next.js 16（App Router）、TypeScript、Tailwind CSS 4、shadcn/ui、next-intl
 - **后端**：FastAPI（Python 3.12+）、SQLAlchemy、miniupnpc、阿里云 DNS SDK
 
 ## 快速开始
@@ -41,15 +41,20 @@ cd PandaHome
 
 ### 2. 安装依赖
 
+使用 Python 3.12+ 和 Node.js 22.x，在仓库根目录执行：
+
 ```bash
-# 后端（在仓库根目录执行）
-uv pip install --system -e api
-# 或者
-pip install -e api
+# 后端，包含必需测试钩子使用的依赖
+python3 -m venv venv
+source venv/bin/activate
+python -m pip install -e "api[test]"
 
 # 前端
 npm install --prefix web
 ```
+
+若使用 uv，可在已激活的虚拟环境中将 pip 安装命令替换为 `uv pip install -e "api[test]"`。
+若 macOS 原生依赖编译失败，参考已验证的 [SDK 兼容说明](docs/backend-dependency-audit.md#macos-native-build-note)。
 
 ### 3. 配置环境变量
 
@@ -64,25 +69,36 @@ cp web/.env.local.example web/.env.local
 
 ```bash
 # 在仓库根目录
-pip install pre-commit
+python -m pip install pre-commit
 pre-commit install --install-hooks
 ```
 
 ### 5. 准备数据库
 
+默认 `DATABASE_URL=sqlite:///./app.db` 相对于进程当前工作目录解析。
+迁移、管理员初始化和 API 启动必须在同一个 `api/` 目录执行，确保使用
+同一份 `api/app.db`；以下步骤不会移动或合并其他目录中已有的数据库。
+此终端继续保持后端虚拟环境激活。
+
 ```bash
+# 从仓库根目录进入
 cd api
 alembic upgrade head
-bootstrap-admin --username admin --password changeme --email admin@example.com
+bootstrap-admin --username admin --password 'replace-with-your-password' --email admin@example.com
 ```
 
 ### 6. 运行应用
 
+在上一步的同一个后端终端执行，此时仍位于 `api/`：
+
 ```bash
 # 后端（监听 8003 端口以匹配前端默认配置）
-uvicorn src.app.main:app --reload --app-dir api/src --port 8003
+uvicorn src.app.main:app --port 8003
+```
 
-# 前端
+开发时可按需添加 `--reload`。另开一个终端，进入仓库根目录后启动前端：
+
+```bash
 npm run dev --prefix web
 ```
 
@@ -92,10 +108,10 @@ npm run dev --prefix web
 ## 开发流程
 
 - 每次由智能体或双人编程产生代码改动时，必须在 `agent_chats/YYYYMMDD-HHMMSS-topic.md` 中记录，模板见 `agent_chats/README.md`。
-- 在提交 PR 前运行测试：
-  - `pytest -q api/tests`
+- 在提交 PR 前，从仓库根目录运行测试，保持后端虚拟环境激活：
+  - `python -m pytest -q api/tests`
   - `npm run test --prefix web`
-- 在提交 PR 前运行 `pre-commit run --all-files`，钩子会自动执行 Ruff 检查/格式化（`api/`）以及安装了依赖后的 `npm run lint`（前端，包含测试）。
+- 在提交 PR 前运行 `pre-commit run --all-files`；钩子执行后端 Ruff 检查与修复、后端测试，以及已安装依赖时的前端 ESLint 和测试。
 - 完整的工程手册请参考仓库根目录下的 `AGENTS.md`。
 
 ## 环境变量
@@ -104,15 +120,15 @@ npm run dev --prefix web
 
 | 变量 | 说明 | 默认值 |
 | --- | --- | --- |
-| `DATABASE_URL` | SQLAlchemy 数据库连接字符串 | `sqlite:///./app.db` |
+| `DATABASE_URL` | SQLAlchemy 数据库连接字符串；相对 SQLite 路径按进程当前工作目录解析 | `sqlite:///./app.db` |
 | `SECRET_KEY` | JWT 签名密钥，生产环境需替换 | `change-me` |
 | `JWT_ALGORITHM` | JWT 签名算法 | `HS256` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token 有效期（分钟） | `30` |
 | `AUTH_TOKEN_URL` | OAuth2 token 接口路径 | `/api/auth/token` |
-| `AUTH_HASHING_SCHEMES` | Passlib 哈希算法（逗号分隔） | `bcrypt` |
+| `AUTH_HASHING_SCHEMES` | Passlib 哈希算法的 JSON 数组 | `["bcrypt"]` |
 | `AUTH_HASHING_DEPRECATED` | Passlib 过期哈希策略 | `auto` |
-| `ALIYUN_ACCESS_KEY_ID` | 阿里云 Access Key ID | _(必填)_ |
-| `ALIYUN_ACCESS_KEY_SECRET` | 阿里云 Access Key Secret | _(必填)_ |
+| `ALIYUN_ACCESS_KEY_ID` | 阿里云 Access Key ID，仅管理阿里云 DNS 时必填 | _(未设置)_ |
+| `ALIYUN_ACCESS_KEY_SECRET` | 阿里云 Access Key Secret，仅管理阿里云 DNS 时必填 | _(未设置)_ |
 | `ALIYUN_REGION_ID` | 阿里云 DNS API 区域 | `cn-hangzhou` |
 
 前端（`web/.env.local`）
@@ -123,9 +139,9 @@ npm run dev --prefix web
 
 ## 认证流程概述
 
-1. 通过 `bootstrap-admin --username admin --password changeme --email admin@example.com` 初始化管理员账号（重复执行可更新密码）。
+1. 保持后端虚拟环境激活，在 `api/` 执行 `bootstrap-admin --username admin --password 'replace-with-your-password' --email admin@example.com` 初始化管理员账号（重复执行可更新密码）。
 2. 启动后端和前端，访问 `http://localhost:3000/login` 并登录。
-3. 登录成功后会在本地保存 token，受保护的页面（`/status`、`/upnp`、`/domains`）需要该 token 才能访问。
+3. 登录成功后会在本地保存 token，受保护的页面（`/access`、`/p2p`、`/status`、`/upnp`、`/domains`）需要该 token 才能访问。
 4. 当 token 失效或被撤销时，前端会自动退出并跳转回登录页。
 
 更完整的认证生命周期说明请参考 `docs/auth-lifecycle.md`（环境变量、CLI 初始化、登录/退出流程等）。

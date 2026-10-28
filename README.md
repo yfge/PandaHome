@@ -12,7 +12,7 @@ evidence, then maintains either UPnP + optional Aliyun DDNS or a native frp rela
 Services are persisted and restored without keeping the browser open; mapping
 leases, changed IPs, failed checks and relay exits are retried automatically.
 
-Run `cd api && alembic upgrade head` before starting the API. For relay access,
+Prepare the database as described in Quick Start before starting the API. For relay access,
 install the official `frpc` binary and configure your reachable `frps` using the
 `RELAY_*` entries in `api/.env.example`. Use one API worker per database/state
 directory. No public server is installed or provisioned automatically.
@@ -30,7 +30,7 @@ UDP needs application-level external validation. See the complete
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS 4, shadcn/ui, next-intl
+- **Frontend**: Next.js 16 (App Router), TypeScript, Tailwind CSS 4, shadcn/ui, next-intl
 - **Backend**: FastAPI (Python 3.12+), SQLAlchemy, miniupnpc, Aliyun DNS SDK
 
 ## Quick Start
@@ -44,15 +44,20 @@ cd PandaHome
 
 ### 2. Install dependencies
 
+Use Python 3.12+ and Node.js 22.x. Run these commands from the repository root:
+
 ```bash
-# Backend (run from repository root)
-uv pip install --system -e api
-# or
-pip install -e api
+# Backend, including dependencies for the required test hooks
+python3 -m venv venv
+source venv/bin/activate
+python -m pip install -e "api[test]"
 
 # Frontend
 npm install --prefix web
 ```
+
+If you use uv, replace the pip installation command with `uv pip install -e "api[test]"` in the activated environment.
+For a macOS native dependency build failure, see the verified [SDK compatibility note](docs/backend-dependency-audit.md#macos-native-build-note).
 
 ### 3. Configure environment variables
 
@@ -67,25 +72,38 @@ Then edit the files to provide your secrets (see [Environment Variables](#enviro
 
 ```bash
 # From repository root
-pip install pre-commit
+python -m pip install pre-commit
 pre-commit install --install-hooks
 ```
 
 ### 5. Prepare the database
 
+The default `DATABASE_URL=sqlite:///./app.db` resolves relative to the current
+working directory. Run migrations, administrator bootstrap and the API from the
+same `api/` directory so they all use `api/app.db`. These commands do not move or
+merge an existing database from another directory. Keep the virtual environment
+activated in this terminal.
+
 ```bash
+# From the repository root
 cd api
 alembic upgrade head
-bootstrap-admin --username admin --password changeme --email admin@example.com
+bootstrap-admin --username admin --password 'replace-with-your-password' --email admin@example.com
 ```
 
 ### 6. Run the application
 
+In the same backend terminal, still inside `api/`:
+
 ```bash
 # Backend (port 8003 to match the web client default)
-uvicorn src.app.main:app --reload --app-dir api/src --port 8003
+uvicorn src.app.main:app --port 8003
+```
 
-# Frontend
+Add `--reload` for development if needed. Open a second terminal at the repository
+root for the frontend:
+
+```bash
 npm run dev --prefix web
 ```
 
@@ -95,10 +113,10 @@ npm run dev --prefix web
 ## Development Workflow
 
 - Log every code-producing session in `agent_chats/YYYYMMDD-HHMMSS-topic.md` following the template described in `agent_chats/README.md`.
-- Run tests before opening a PR:
-  - `pytest -q api/tests`
+- Run tests from the repository root with the backend virtual environment active before opening a PR:
+  - `python -m pytest -q api/tests`
   - `npm run test --prefix web`
-- Run `pre-commit run --all-files` before opening a PR; hooks enforce Ruff lint/format on `api/`, `npm run lint` (and tests) for the frontend when dependencies are installed.
+- Run `pre-commit run --all-files` before opening a PR; hooks enforce Ruff lint/fixes on `api/`, backend tests, and frontend ESLint/tests when web dependencies are installed.
 - See `AGENTS.md` for the full engineering handbook covering repository layout, conventions, and incident process.
 
 ## Environment Variables
@@ -107,15 +125,15 @@ Backend (`api/.env`):
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `DATABASE_URL` | SQLAlchemy database connection string. | `sqlite:///./app.db` |
+| `DATABASE_URL` | SQLAlchemy database connection string; relative SQLite paths use the process working directory. | `sqlite:///./app.db` |
 | `SECRET_KEY` | JWT signing key; replace in production. | `change-me` |
 | `JWT_ALGORITHM` | JWT signing algorithm. | `HS256` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime in minutes. | `30` |
 | `AUTH_TOKEN_URL` | OAuth2 token endpoint path. | `/api/auth/token` |
-| `AUTH_HASHING_SCHEMES` | Comma-separated Passlib hashing schemes. | `bcrypt` |
+| `AUTH_HASHING_SCHEMES` | JSON array of Passlib hashing schemes. | `["bcrypt"]` |
 | `AUTH_HASHING_DEPRECATED` | Passlib deprecated hashing strategy. | `auto` |
-| `ALIYUN_ACCESS_KEY_ID` | Aliyun access key ID. | _(required)_ |
-| `ALIYUN_ACCESS_KEY_SECRET` | Aliyun access key secret. | _(required)_ |
+| `ALIYUN_ACCESS_KEY_ID` | Aliyun access key ID; required for Aliyun DNS management. | _(unset)_ |
+| `ALIYUN_ACCESS_KEY_SECRET` | Aliyun access key secret; required for Aliyun DNS management. | _(unset)_ |
 | `ALIYUN_REGION_ID` | Aliyun region for DNS API. | `cn-hangzhou` |
 
 Frontend (`web/.env.local`):
@@ -126,9 +144,9 @@ Frontend (`web/.env.local`):
 
 ## Authentication Overview
 
-1. Seed an administrator with `bootstrap-admin --username admin --password changeme --email admin@example.com` (re-run to rotate credentials).
+1. With the backend virtual environment active, run `bootstrap-admin --username admin --password 'replace-with-your-password' --email admin@example.com` from `api/` (re-run to rotate credentials).
 2. Start backend + frontend, then visit `http://localhost:3000/login` to sign in.
-3. Successful login stores a bearer token locally; protected routes (`/status`, `/upnp`, `/domains`) require the token.
+3. Successful login stores a bearer token locally; protected routes (`/access`, `/p2p`, `/status`, `/upnp`, `/domains`) require the token.
 4. Expired or invalid tokens trigger automatic logout and redirect back to `/login`.
 
 See `docs/auth-lifecycle.md` for the full authentication lifecycle (env requirements, CLI bootstrap, login/logout flow).

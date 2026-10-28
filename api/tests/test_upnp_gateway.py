@@ -80,8 +80,12 @@ def routers(monkeypatch):
         devices=[{"LOCATION": INNER}, {"location": OUTER}, {"location": OUTER}],
         gateway_info={"ip": "192.168.2.1"}, interface_ip="192.168.2.10",
     )
-    monkeypatch.setattr(app.state, "upnp_service", default_service)
-    return outer, inner, create
+    previous = app.state.upnp_service
+    app.state.upnp_service = default_service
+    try:
+        yield outer, inner, create
+    finally:
+        app.state.upnp_service = previous
 
 
 @pytest.fixture()

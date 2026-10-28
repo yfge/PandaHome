@@ -13,9 +13,10 @@ This document is the single source of truth for all coding agents collaborating 
 - `api/` — FastAPI service (Python 3.12, SQLAlchemy, Aliyun + UPnP integrations).
   - `src/app/routers/` HTTP endpoints per domain (`domains`, `upnp`, ...).
   - `src/app/services/` core orchestration (Aliyun DNS client, UPnP controller).
-  - `src/app/models/` SQLAlchemy models and Pydantic schemas.
+  - `src/app/models/` SQLAlchemy models and legacy request/response models.
+  - `src/app/schemas/` Pydantic request/response validation.
   - `pyproject.toml` drives packaging + Ruff configuration.
-- `web/` — Next.js 15 app router (TypeScript, Tailwind 4, shadcn/ui).
+- `web/` — Next.js 16 app router (TypeScript, Tailwind 4, shadcn/ui).
   - `src/app/` routing + layouts, `src/components/` UI primitives, `src/config/` constants, `src/i18n/` translations.
   - `package.json` uses npm scripts (`npm run dev|build|start|lint`).
 - `agent_chats/` — required logbook for AI collaborations (see §5).
@@ -25,8 +26,9 @@ Keep this structure tidy; prefer adding new domains under the existing patterns.
 
 ## 3. Toolchain Expectations
 
-- Python: 3.12+. Use `uv` or `pip` with virtualenv; install deps via `pip install -e api` or `uv pip install -e api` (document exact command in logs).
-- Node.js: LTS 20.x or 22.x with npm. Install web deps via `npm install` inside `web/`.
+- Python: 3.12+. Use `uv` or `pip` with virtualenv; from the repository root, install development/test deps via `python -m pip install -e "api[test]"` or `uv pip install -e "api[test]"` (document the exact command in logs).
+- Node.js: 20.9+ (20.x or 22.x) with npm for Next.js 16; the setup guide uses 22.x. Install web deps via `npm install` inside `web/`.
+- The default `DATABASE_URL=sqlite:///./app.db` is relative to the process working directory. Run Alembic migrations, `bootstrap-admin`, and the API from the same `api/` directory; do not relocate databases, rewrite the configured URL, or run migrations automatically.
 - Docker usage should be documented before introducing new containers.
 - Infrastructure secrets (`ALIYUN_*`, etc.) live in `.env` files that are never committed; provide `.env.example` updates when new variables are required.
 
@@ -42,6 +44,8 @@ Keep this structure tidy; prefer adding new domains under the existing patterns.
   - `ruff`: lint/fix Python inside `api/`.
   - `scripts/ensure_agent_chat.sh`: blocks commits that touch code without an `agent_chats` entry; validates naming + sections.
   - `scripts/run_web_lint.sh`: runs `npm run lint` when `web/node_modules` exists.
+  - `scripts/run_api_tests.sh`: runs backend pytest tests; requires the `api[test]` dependencies.
+  - `scripts/run_web_tests.sh`: runs frontend Vitest tests when `web/node_modules` exists.
 - Keep hooks fast (<1 min). When they fail, fix the root cause; do not bypass except for emergencies (document any skip in `agent_chats`).
 - Run `pre-commit run --all-files` before opening pull requests.
 
@@ -88,7 +92,7 @@ Keep this structure tidy; prefer adding new domains under the existing patterns.
 
 - Update `README.md` / `README.zh.md` whenever setup steps change.
 - Document new modules or workflows in `/docs` (create if needed) and reference them from `agent_chats`.
-- Keep this `agents.md` current; if instructions change, update here first and sync other agent files (e.g., `CLAUDE.md`).
+- Keep this `AGENTS.md` current; if instructions change, update here first and sync other agent files (e.g., `CLAUDE.md`).
 
 ## 9. Incident & Risk Handling
 
@@ -98,9 +102,11 @@ Keep this structure tidy; prefer adding new domains under the existing patterns.
 
 ## 10. Useful Commands
 
-- Backend lint/format: `uv run ruff check api && uv run ruff format api`
-- Backend dev server: `uvicorn src.app.main:app --reload --app-dir api/src`
-- Frontend dev server: `npm run dev --prefix web`
+- Backend lint/fixes (repository root): `pre-commit run ruff --all-files`
+- Database migrations (inside `api/`): `alembic upgrade head`
+- Administrator bootstrap (inside the same `api/`): `bootstrap-admin --username admin --password 'replace-with-your-password' --email admin@example.com`
+- Backend server (inside the same `api/`): `uvicorn src.app.main:app --port 8003` (add `--reload` for development if needed).
+- Frontend dev server (another terminal, repository root): `npm run dev --prefix web`
 - Run hooks on demand: `pre-commit run --all-files`
 
 Stay disciplined: small, well-documented commits + enforced hooks keep PandaHome healthy.
@@ -114,7 +120,7 @@ Stay disciplined: small, well-documented commits + enforced hooks keep PandaHome
 - Frontend `.env.local` expects:
   - `NEXT_PUBLIC_API_BASE_URL`
 - Key API routes exposed by FastAPI:
-  - `GET /api/upnp/mappings`, `POST /api/upnp/mappings`, `DELETE /api/upnp/mappings/{id}`
+  - `GET /api/upnp/mappings`, `POST /api/upnp/mappings`, `DELETE /api/upnp/mappings/{external_port}?protocol=TCP|UDP`
   - `GET /api/domains/domains`, `POST /api/domains/domains`
   - `GET /api/domains/domains/{domain}/records`, `POST`, `PUT`, `DELETE /api/domains/domains/{domain}/records/{record_id}`
 - When expanding the API, update router docs (`api/src/app/routers/*`) and sync README files in both English and Chinese.

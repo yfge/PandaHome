@@ -303,8 +303,13 @@ async def test_invalid_mapping_rejected_without_start(relay, spawns, mappings):
     assert not spawns
 
 
-def test_state_inside_checkout_is_rejected():
-    repository = Path(relay_module.__file__).resolve().parents[4]
+def test_state_inside_checkout_is_rejected(tmp_path, monkeypatch):
+    repository = tmp_path / "checkout"
+    (repository / ".git").mkdir(parents=True)
+    source = repository / "api" / "src" / "app" / "services" / "relay.py"
+    source.parent.mkdir(parents=True)
+    source.touch()
+    monkeypatch.setattr(relay_module, "__file__", str(source))
     with pytest.raises(RelayError, match="outside the source checkout"):
         FrpRelay(RelayConfig(state_dir=repository / ".relay"))
 
