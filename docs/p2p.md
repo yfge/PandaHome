@@ -227,6 +227,20 @@ P2P 服务共用一个家庭侧进程。改变目标、回退设置、启用状�
 PandaHome 不根据进程存活编造连接路径，也不将配置校验或本机联通测试称为
 真实跨网打洞验收。
 
+## 本机进程守护回归
+
+安装后端测试依赖后，在仓库根目录运行：
+
+```bash
+python -m pytest -q api/tests/test_process_guard.py api/tests/test_p2p_service.py api/tests/test_relay.py
+```
+
+其中 `test_process_guard.py` 创建真实 Python 子进程和本机 TCP 监听，验证正常
+终止、后端或单个监控进程被强制终止、启动中断、忽略终止信号的原生进程、
+停止超时后的强制清理、进程创建时间不匹配，以及两个服务的进程组清理隔离。
+其他两个测试文件同时检查公网中转与 P2P 使用共享启动契约，没有重复包装。
+这些测试不需要 frp 二进制，不访问真实路由器，也不证明 frps 注册或 NAT 打洞。
+
 ## 本机原生 frp 测试
 
 开发者可准备解压后的 frp 目录，其中包含可执行的 `frpc` 和 `frps`，然后在

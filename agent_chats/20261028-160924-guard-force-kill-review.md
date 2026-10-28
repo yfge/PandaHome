@@ -24,6 +24,8 @@ guard itself was killed. Public relay needs the same protection.
   is reset before spawning children so their leader cannot be auto-reaped early.
 - `docs/p2p.md`, `tasks.md`: document process topology, bounded cleanup and
   single-monitor-loss acceptance without claiming cross-network traversal.
+  The backend handoff adds a standalone process-regression command to
+  `docs/p2p.md`; it needs no frp binary or physical router.
 - Access owns the coordinated adoption in `api/src/app/services/relay.py`,
   `api/tests/test_relay.py` and `api/tests/integration/frp_smoke.py`.
 
@@ -62,9 +64,28 @@ being scheduled; it is not an instantaneous revocation guarantee.
   their tests, documentation, task state and this log: passed, including full API
   regression, Python lint and the collaboration-log check. No hooks were bypassed.
 
+### Final backend handoff recheck
+
+- `python -m pytest -q api/tests/test_process_guard.py api/tests/test_p2p_service.py
+  api/tests/test_relay.py api/tests/test_transport_isolation.py`: 65 passed in
+  10.66 s. Independent read-only review found no new required fix and confirmed
+  that P2P inherits the base relay's single guard wrapper.
+- `PANDAHOME_FRP_BIN_DIR=/path/to/verified/frp python -m pytest -q api/tests/test_p2p_native.py`:
+  4 passed in 14.40 s, still limited to local XTCP/STCP/revocation/recovery.
+- `python -m pytest -q api/tests`: 364 passed, 4 optional native tests skipped
+  in 27.82 s on the current shared worktree. The native tests passed separately
+  above. This snapshot includes integration/Access-owned test work, which this
+  handoff neither modifies nor stages.
+- Documentation was independently checked against the shared implementation,
+  including the process-group identity and complete-monitor-loss boundaries.
+
 ## Next steps
 
-The shared Access/P2P commit is complete. Let the overall reviewer run the final
-integrated UI/transport snapshot after other owners finish. Keep the real
-cross-NAT task open. Do not push, deploy or modify real routers; preserve the
-UI/integration reviewers' unrelated WIP.
+The shared Access/P2P backend commit is complete in `2e440ad`; the initial guard
+acceptance record is in `3e6bde2`. This follow-up commits only `docs/p2p.md` and
+this backend log. No uncommitted backend implementation remains with the P2P
+owner. The PM exclusively owns P2P's four frontend components/tests and their
+separate UX log/commit; do not modify or stage them or their task-state WIP.
+Let the overall reviewer run the final integrated UI/transport snapshot after
+other owners finish. Keep the real cross-NAT task open. Do not push, deploy or
+modify real routers; preserve all integration/Access/UI reviewers' unrelated WIP.
