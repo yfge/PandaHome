@@ -4,6 +4,7 @@ const API_BASE =
   "http://localhost:8003";
 
 export const API_ENDPOINTS = {
+  access: `${API_BASE}/api/access`,
   status: `${API_BASE}/api/status`,
   upnpMappings: `${API_BASE}/api/upnp/mappings`,
   domains: `${API_BASE}/api/domains/domains`

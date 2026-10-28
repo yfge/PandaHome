@@ -13,7 +13,7 @@ export function MainNav() {
   const { token } = useAuth();
 
   return (
-    <nav className="flex items-center space-x-4 lg:space-x-6">
+    <nav aria-label={t("navigation")} className="flex min-w-0 flex-1 items-center gap-4 overflow-x-auto py-3 pr-4 whitespace-nowrap lg:gap-6">
       <Link
         href="/"
         className={cn(
@@ -25,6 +25,15 @@ export function MainNav() {
       </Link>
       {token ? (
         <>
+          <Link
+            href="/access"
+            className={cn(
+              "text-sm font-medium transition-colors hover:text-primary",
+              pathname === "/access" ? "text-primary" : "text-muted-foreground"
+            )}
+          >
+            {t("access")}
+          </Link>
           <Link
             href="/status"
             className={cn(
