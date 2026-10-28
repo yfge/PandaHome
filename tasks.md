@@ -7,6 +7,7 @@ Owner: PandaHome maintainers / Codex. Design and operations: `docs/p2p.md`.
 - [x] Implement persisted XTCP service intent, encrypted STCP fallback, isolated frpc lifecycle and periodic recovery.
 - [x] Add active-admin CRUD, key rotation, protected visitor/CA downloads and a localized `/p2p` management page.
 - [x] Verify API authorization, provider recovery, native frp configuration/data transfer, migrations and frontend production build.
+- [x] Reuse stable-identity guard/watchdog supervision and verify individual monitor death plus forced-stop cleanup without orphan listeners.
 - [ ] Validate real direct traversal between separate networks using the deployment's frps/STUN configuration; local validation cannot close this item.
 
 ## Feature 07: Managed Public Services
