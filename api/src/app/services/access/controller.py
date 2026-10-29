@@ -9,7 +9,7 @@ from ...database.database import SessionLocal
 from ...models.published_service import PublishedService
 from ..logger import logger
 from ..network_detection import NetworkDetector
-from ..relay import FrpRelay, RelayConfig
+from ..relay_profile import RelayProfileError, RelayProfileStore, environment_profile, profile_relay
 from .dns import DnsSync
 from .health import HealthChecks
 from .mappings import ManagedMappings
@@ -33,16 +33,12 @@ class AccessController:
     ):
         self.upnp, self.session_factory = upnp, session_factory
         self.detector = detector or NetworkDetector(upnp)
-        self.relay = relay or FrpRelay(
-            RelayConfig(
-                state_dir=settings.RELAY_STATE_DIR,
-                binary=settings.RELAY_BINARY,
-                server_addr=settings.RELAY_SERVER_ADDR,
-                server_port=settings.RELAY_SERVER_PORT,
-                public_host=settings.RELAY_PUBLIC_HOST,
-                token=settings.RELAY_TOKEN.get_secret_value(),
-            )
-        )
+        self._relay_store = None
+        if relay is None:
+            self._relay_store = RelayProfileStore(settings.RELAY_STATE_DIR, environment_profile(settings))
+            self._relay_profile, _ = self._relay_store.load()
+            relay = profile_relay(settings.RELAY_STATE_DIR, self._relay_profile)
+        self.relay = relay
         self.reconciler = ServiceReconciler(
             mappings=mappings or ManagedMappings(upnp),
             relay=self.relay,
@@ -58,6 +54,37 @@ class AccessController:
         self._wake = asyncio.Event()
         self._task = None
         self._checks_limit = asyncio.Semaphore(8)
+
+    def relay_profile(self) -> dict:
+        if self._relay_store is None:
+            raise RelayProfileError("Managed relay configuration is unavailable")
+        profile, source = self._relay_store.load()
+        return profile.view(source=source)
+
+    async def save_relay_profile(self, incoming) -> dict:
+        """Called under the same lock as reconciliation and business CRUD."""
+        if self._relay_store is None:
+            raise RelayProfileError("Managed relay configuration is unavailable")
+        current, _ = self._relay_store.load()
+        profile = self._relay_store.with_credentials(incoming, current)
+        changed = profile != self._relay_profile
+        replacement = profile_relay(self._relay_store.directory, profile) if changed else self.relay
+        try:
+            # Stage, validate and fsync first; ordinary write failures leave
+            # existing children alone. Only the final atomic rename follows stop.
+            with self._relay_store.prepare(profile) as commit:
+                if changed:
+                    await self.relay.stop()
+                commit()
+        except BaseException:
+            # If final rename fails, persisted intent and original instance stay
+            # paired; the normal loop restarts that original relay immediately.
+            self.wake()
+            raise
+        self.relay = self.reconciler.relay = replacement
+        self._relay_profile = profile
+        self.wake()
+        return profile.view(source="managed")
 
     async def start(self) -> None:
         if self._task is None or self._task.done():

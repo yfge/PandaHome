@@ -1,5 +1,27 @@
 # PandaHome Task Backlog
 
+## Relay integration and retained-service takeover: 2026-10-29
+
+Owners: backend (relay profile, TLS trust and guarded SSH/frpc lifecycle),
+UE/UI (administrator setup and production-browser acceptance), integration
+(deployment, evidence, documentation and exclusive staging/commits).
+PM coordinates and independently reviews; PM does not implement or commit.
+Current state: implementation and managed takeover pending. The retained
+`gpufree-code.lets-gpt.com:8081` entry currently uses standalone SSH/frpc;
+its existing DNS record and cloud frps infrastructure must remain intact.
+This work does not close native P2P direct traversal, company-router ingress,
+or the historical unexplained UDP 32783 mapping discrepancy.
+
+- [ ] Persist administrator-managed relay settings with redacted token responses, environment defaults, TLS CA/server-name verification and optional SSH transport.
+- [ ] Verify correct native TLS registration and rejection of wrong CA/server name without fallback; disabled services must start neither SSH nor frpc.
+- [ ] Pass relevant backend/frontend tests, lint, type checking, production build and normal hooks; independently review and atomically commit the feature before deployment.
+- [ ] Prepare a frozen source deployment with a fresh private database/state, one API worker and loopback-only API/web; preserve unknown existing databases.
+- [ ] Through the real UI, save the relay profile and disabled service; prove API/database persistence without claiming live ownership.
+- [ ] After reviewed cutover, disable and stop both precisely owned standalone launchd jobs; prove PandaHome owns the SSH and frpc children while cloud frps identity stays unchanged.
+- [ ] From home 1.81, verify normal DNS/FQDN homepage, version, login and anonymous-user authorization; verify disable-negative then enable-positive behavior.
+- [ ] Restart the API against the same database/profile; verify old-child cleanup, new-child ownership, restored business access and unchanged exact DNS identity/stable fields with zero DNS writes.
+- [ ] Retain a reviewed rollback that stops product-owned children before restoring old SSH/frpc, with no dual KeepAlive owner; record final evidence and retained resources.
+
 ## Field Acceptance: field-20261028-183427Z
 
 Owners: Access (public application chain, resource ledger and final shared delivery),

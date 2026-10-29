@@ -2,6 +2,7 @@
 
 import { useCallback, useLayoutEffect, useRef, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { accessRequest } from "@/components/access/access-api";
@@ -88,6 +89,20 @@ export function AccessPageClient() {
     catch (cause) { reportError(cause); }
     finally { setBusyId(null); }
   };
+  const toggle = async (service: PublishedService) => {
+    setBusyId(service.id);
+    const draft: ServiceDraft = {
+      name: service.name, local_ip: service.local_ip, local_port: service.local_port,
+      public_port: service.public_port, protocol: service.protocol, mode: service.mode,
+      domain: service.domain, rr: service.rr, enabled: !service.enabled, lease_duration: service.lease_duration,
+    };
+    try {
+      await request(`/services/${service.id}`, "PUT", draft);
+      toast({ title: t(service.enabled ? "pauseSaved" : "enableSaved") });
+      await reload();
+    } catch (cause) { reportError(cause); }
+    finally { setBusyId(null); }
+  };
   const remove = async () => {
     if (!deleting) return;
     setBusyId(deleting.id);
@@ -115,8 +130,11 @@ export function AccessPageClient() {
           <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">{t("description")}</p>
         </div>
-        <Button ref={addButtonRef} onClick={(event) => openForm(null, event.currentTarget)} disabled={!data}>
-          <Plus aria-hidden="true" />{t("addService")}</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild><Link href="/access/setup">{t("configureRelay")}</Link></Button>
+          <Button ref={addButtonRef} onClick={(event) => openForm(null, event.currentTarget)} disabled={!data}>
+            <Plus aria-hidden="true" />{t("addService")}</Button>
+        </div>
       </header>
       {error ? <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
         <div>
@@ -151,6 +169,7 @@ export function AccessPageClient() {
                     setDeleteError(null);
                   }}
                   onCheck={() => void check(service)}
+                  onToggle={() => void toggle(service)}
                 />
               ))}
             </div>

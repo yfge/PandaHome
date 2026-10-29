@@ -78,9 +78,74 @@ external-evidence boundaries, and a usable localized mobile/desktop flow.
    It writes credentials outside the source checkout, in a private 0700 directory
    with a 0600 file, and keeps its authenticated status interface on loopback.
 
+## Relay profile and SSH integration (pending)
+
+The integration tracked in [tasks.md](../tasks.md) moves relay configuration and
+an optional SSH control channel into PandaHome. Implementation, production UI
+validation and the retained-service takeover are pending; the currently working
+GPUFree Git entry is still owned by standalone SSH/frpc service-manager jobs.
+
+The agreed interface is an active-administrator relay configuration screen backed
+by `GET`/`PUT /api/access/relay-config`. The profile belongs to the deployment,
+while each published service keeps its own target, public port and DNS intent.
+The private `relay-profile.json` lives under `RELAY_STATE_DIR`, outside the source
+checkout, with directory mode 0700 and file mode 0600. Environment settings remain
+defaults when there is no saved profile. Responses report token presence rather
+than the token. Omitted or null token input preserves the saved token. The UI
+omits an unchanged empty password field and offers an explicit clear action;
+`clear_token=true` or an explicit API empty string removes the saved token.
+
+TLS configuration must carry the trusted CA file and server name through to the
+native client. A wrong CA or name must reject registration without silently
+disabling verification. These deployment file paths are not application-service
+credentials and must not be copied into public response bodies or shared logs.
+
+For a relay control socket exposed only on the remote server's loopback address,
+PandaHome may own an SSH local forward as part of the relay lifecycle. The SSH
+host/user/port, existing identity and known-hosts paths, remote frps address/port
+and local loopback port are explicit configuration. Use non-interactive
+authentication and strict host-key checking. PandaHome starts the SSH channel
+before frpc, stops frpc before the channel, and guards both process identities
+across backend death. With no enabled relay service it must start neither child.
+The existing remote frps remains operator-managed infrastructure.
+
+### Retained-service adoption and rollback
+
+1. Freeze and review the feature source, normal quality gates and the exact
+   existing DNS, cloud frps and local service-manager identities. Snapshot only
+   the owned configuration needed for rollback; keep secrets private.
+2. Prepare a normal PandaHome deployment with a fresh private database/state and
+   one API worker. Run migrations, administrator bootstrap and the API from the
+   same deployed `api/` directory against the same configured database. Do not
+   migrate, relocate or reset an unrelated existing database. Keep management
+   API and web listeners on loopback and build outside the shared checkout.
+3. Save the profile and a disabled service through the real UI. Confirm persisted
+   reads without starting SSH/frpc or competing for the existing public port.
+4. In the reviewed cutover window, verify and stop **both** owned standalone SSH
+   and frpc jobs and persistently disable their automatic restart. Retain their
+   exact original bytes. Only then enable the service in PandaHome and verify
+   that its guarded SSH/frpc children own the runtime; do not replace cloud frps.
+5. Use an independent external client with normal DNS/FQDN access to verify
+   application content and authorization boundaries. Save disabled and confirm
+   loss of access, then re-enable and confirm recovery. Restart the API against
+   the same database/profile and verify old-child cleanup and restored ownership.
+6. Keep the original DNS record ID and stable fields unchanged throughout.
+   Same-value synchronization must not add, update or delete the retained
+   record. Without a configured external probe, the product's unverified status
+   remains honest even when a separately recorded external acceptance succeeds.
+
+If takeover fails, stop the product-owned SSH/frpc children first and verify
+their ports are released before restoring the original standalone SSH then frpc
+jobs. Never keep both owners enabled. Preserve DNS, cloud frps, the new database
+and evidence; a successful rollback is not a successful PandaHome takeover.
+The retained cloud entry proves relay ingress, not company physical-WAN ingress
+or native peer-to-peer traversal.
+
 ## Settings
 
-All settings are in `api/.env`; their examples are in `api/.env.example`.
+Environment defaults are configured in `api/.env`, with examples in
+`api/.env.example`. A saved administrator relay profile overrides relay defaults;
+it does not override the database, state directory or unrelated P2P settings.
 
 | Setting | Default | Purpose |
 | --- | --- | --- |

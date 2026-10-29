@@ -44,7 +44,36 @@ export interface AccessState {
     running: boolean;
     public_host: string | null;
     reason_code: string | null;
+    ssh?: { configured: boolean; available: boolean; running: boolean; reason_code: string | null };
+    tls?: { trusted_ca_configured: boolean; server_name_configured: boolean };
   };
   services: PublishedService[];
   poll_interval_seconds: number;
+}
+
+export interface RelayConfigDraft {
+  server_addr: string;
+  server_port: number;
+  public_host: string;
+  binary: string;
+  tls_trusted_ca_file: string;
+  tls_server_name: string;
+  ssh_enabled: boolean;
+  ssh_host: string;
+  ssh_port: number;
+  ssh_user: string;
+  ssh_identity_file: string;
+  ssh_known_hosts_file: string;
+  ssh_local_port: number;
+  ssh_binary: string;
+}
+
+export interface RelayConfigView extends RelayConfigDraft {
+  has_token: boolean;
+  source: "environment" | "managed";
+}
+
+export interface RelayConfigWrite extends RelayConfigDraft {
+  token?: string;
+  clear_token?: boolean;
 }

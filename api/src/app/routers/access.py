@@ -11,8 +11,10 @@ from ..models.published_service import PublishedService
 from ..models.response import Response
 from ..models.user import UserRole
 from ..schemas.access import ServiceConfig
+from ..schemas.relay import RelayProfile
 from ..services.access.controller import AccessController
 from ..services.access.store import list_services, service_view
+from ..services.relay_profile import RelayProfileError
 
 
 async def active_admin(user: User = Depends(require_role(UserRole.ADMIN))) -> User:
@@ -26,6 +28,30 @@ router = APIRouter(prefix="/api/access", tags=["public access"], dependencies=[D
 
 def get_access_controller(request: Request) -> AccessController:
     return request.app.state.access_controller
+
+
+@router.get("/relay-config")
+async def relay_config(controller: AccessController = Depends(get_access_controller)):
+    try:
+        return Response.success(data=controller.relay_profile())
+    except RelayProfileError:
+        raise HTTPException(status_code=503, detail="Unable to read relay configuration.") from None
+
+
+@router.put("/relay-config")
+async def update_relay_config(request: Request, controller: AccessController = Depends(get_access_controller)):
+    # A normal FastAPI/Pydantic model error can echo the complete request body
+    # (including a new token). Validate locally and expose no error.input data.
+    try:
+        profile = RelayProfile.model_validate(await request.json())
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=422, detail="Invalid relay configuration.") from None
+    try:
+        async with controller.lock:
+            result = await controller.save_relay_profile(profile)
+        return Response.success(data=result)
+    except Exception:
+        raise HTTPException(status_code=503, detail="Unable to apply relay configuration. Previous settings retained.") from None
 
 
 def get_row(db: Session, service_id: int) -> PublishedService:

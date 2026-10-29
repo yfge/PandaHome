@@ -36,9 +36,9 @@ async function tabTo(user: ReturnType<typeof userEvent.setup>, target: HTMLEleme
   expect(target).toHaveFocus();
 }
 
-function renderPage(locale: "en" | "zh", empty = false) {
+function renderPage(locale: "en" | "zh", empty = false, override: Partial<PublishedService> = {}) {
   vi.mocked(useAccessState).mockReturnValue({
-    data: { ...data, services: empty ? [] : [service] }, error: null, permissionDenied: false, reload,
+    data: { ...data, services: empty ? [] : [{ ...service, ...override }] }, error: null, permissionDenied: false, reload,
   });
   const messages = locale === "en" ? english : chinese;
   render(
@@ -53,6 +53,35 @@ beforeEach(() => { vi.mocked(accessRequest).mockResolvedValue(undefined); });
 afterEach(() => { cleanup(); vi.resetAllMocks(); });
 
 describe.each(["en", "zh"] as const)("public dialog keyboard focus (%s)", (locale) => {
+  it.each([true, false])("saves a precise toggle draft (currently enabled=%s) and waits for real reload", async (enabled) => {
+    const user = userEvent.setup();
+    const t = renderPage(locale, false, { enabled });
+    const action = (enabled ? t.pauseNamed : t.enableNamed).replace("{name}", service.name);
+    let finish: () => void = () => {};
+    vi.mocked(accessRequest).mockReturnValueOnce(new Promise<void>((resolve) => { finish = resolve; }));
+    await user.click(screen.getByRole("button", { name: action }));
+    expect(screen.getByRole("button", { name: action })).toBeDisabled();
+    expect(reload).not.toHaveBeenCalled();
+    expect(accessRequest).toHaveBeenCalledTimes(1);
+    expect(accessRequest).toHaveBeenCalledWith("/services/1", expect.objectContaining({ method: "PUT", body: {
+      name: service.name, local_ip: service.local_ip, local_port: service.local_port, public_port: service.public_port,
+      protocol: service.protocol, mode: service.mode, domain: service.domain, rr: service.rr, enabled: !enabled, lease_duration: service.lease_duration,
+    } }));
+    finish();
+    await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+  });
+
+  it("keeps the current state and reports a failed toggle", async () => {
+    const user = userEvent.setup();
+    const t = renderPage(locale);
+    vi.mocked(accessRequest).mockRejectedValueOnce(new Error("Maintenance unavailable"));
+    await user.click(screen.getByRole("button", { name: t.pauseNamed.replace("{name}", service.name) }));
+    await screen.findByText("Maintenance unavailable");
+    expect(reload).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: t.pauseNamed.replace("{name}", service.name) })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: t.enableNamed.replace("{name}", service.name) })).not.toBeInTheDocument();
+  });
+
   it.each(["add", "edit", "delete"] as const)("restores %s focus before the next keyboard event", async (entry) => {
     const user = userEvent.setup();
     const t = renderPage(locale);

@@ -45,6 +45,13 @@ export function NetworkSummary({ state, detecting, onDetect }: {
           </div>
         </div>
         <p className="text-sm text-muted-foreground">{t(`networkHelp.${recommendation}`)}</p>
+        <div className="flex flex-wrap items-center gap-3 border-t pt-4 text-sm">
+          <span>{t("relayConnection")}: {t(relay.running ? "connectionStarted" : "connectionStopped")}</span>
+          {relay.ssh ? <span>{t("sshConnection")}: {t(relay.ssh.running ? "connectionStarted" : "connectionStopped")}</span> : null}
+          {relay.tls?.trusted_ca_configured ? <span>{t("relayCertificateConfigured")}</span> : null}
+          <Button variant="outline" size="sm" asChild><Link href="/access/setup">{t("configureRelay")}</Link></Button>
+        </div>
+        {relay.ssh?.reason_code && t.has(`reasons.${relay.ssh.reason_code}`) ? <p role="status" className="rounded-lg border p-3 text-sm">{t(`reasons.${relay.ssh.reason_code}`)}</p> : null}
         {network && !network.upnp_available ? <p className="rounded-lg bg-muted p-3 text-sm">{t("upnpMissing")}</p> : null}
         {needsRelay && !relay.available ? (
           <div className="space-y-2 rounded-lg border p-4">

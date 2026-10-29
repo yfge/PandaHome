@@ -6,6 +6,7 @@ import socket
 import stat
 import sys
 import tomllib
+from dataclasses import replace
 from contextlib import suppress
 from pathlib import Path
 from unittest.mock import AsyncMock
@@ -115,6 +116,78 @@ async def test_native_config_and_safe_process_arguments(relay, spawns, tmp_path)
         "reason_code": None,
     }
     await relay.stop()
+
+
+@pytest.mark.asyncio
+async def test_tls_pin_and_server_name_render_without_template_interpolation(relay, spawns, tmp_path):
+    relay.config = replace(relay.config, tls_trusted_ca_file='relative "ca{{literal}}.pem',
+                           tls_server_name='frps."example{{literal}}')
+    await relay.apply([mapping()])
+    tls = tomllib.loads((tmp_path / "frp/frpc.toml").read_text())["transport"]["tls"]
+    assert tls == {"enable": True, "trustedCaFile": str(Path('relative "ca{{literal}}.pem').resolve()),
+                   "serverName": 'frps."example{{literal}}'}
+    assert "{{" not in (tmp_path / "frp/frpc.toml").read_text()
+    await relay.stop()
+
+
+@pytest.mark.asyncio
+async def test_ssh_carrier_precedes_frpc_and_failed_carrier_cannot_reuse_registration(relay, spawns, tmp_path):
+    events = []
+
+    class Carrier:
+        local_port = 54321
+        running = False
+
+        async def start(self):
+            events.append("ssh-ready")
+            self.running = True
+
+        async def stop(self):
+            events.append("ssh-stop")
+            self.running = False
+
+        def status(self):
+            return {"configured": True, "available": True, "running": self.running,
+                    "reason_code": None if self.running else "relay_ssh_process_exited"}
+
+    relay._ssh = Carrier()
+    await relay.apply([mapping()])
+    assert events == ["ssh-ready"] and len(spawns) == 1
+    config = tomllib.loads((tmp_path / "frp/frpc.toml").read_text())
+    assert (config["serverAddr"], config["serverPort"]) == ("127.0.0.1", 54321)
+    read = AsyncMock(return_value={1: True})
+    relay._status_client.registration = read
+    assert await relay.registration() == {1: True}
+    relay._ssh.running = False
+    assert relay.status()["running"] is False
+    assert relay.status()["reason_code"] == "relay_ssh_process_exited"
+    assert await relay.registration() == {}
+    read.assert_awaited_once()
+    relay._ssh.running = True
+
+    async def carrier_exits_during_read(expected):
+        relay._ssh.running = False
+        return {1: True}
+
+    relay._status_client.registration = carrier_exits_during_read
+    assert await relay.registration() == {1: False}
+    relay._ssh.local_port = 54322
+    await relay.apply([mapping()])
+    assert len(spawns) == 2 and spawns[0][2].terminated == 1
+    assert tomllib.loads((tmp_path / "frp/frpc.toml").read_text())["serverPort"] == 54322
+    await relay.apply([])
+    assert spawns[1][2].terminated == 1 and events[-1] == "ssh-stop"
+
+
+@pytest.mark.asyncio
+async def test_ssh_failure_stops_old_native_without_direct_fallback(relay, spawns, tmp_path):
+    await relay.apply([mapping()])
+    relay._ssh = AsyncMock()
+    relay._ssh.start.side_effect = RuntimeError("sanitized SSH failure")
+    with pytest.raises(RuntimeError):
+        await relay.apply([mapping()])
+    assert len(spawns) == 1 and spawns[0][2].terminated == 1
+    assert not (tmp_path / "frp/frpc.toml").exists()
 
 
 @pytest.mark.asyncio

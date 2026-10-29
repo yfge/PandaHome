@@ -17,6 +17,12 @@ install the official `frpc` binary and configure your reachable `frps` using the
 `RELAY_*` entries in `api/.env.example`. Use one API worker per database/state
 directory. No public server is installed or provisioned automatically.
 
+Administrator-managed relay settings and an optional PandaHome-owned SSH control
+channel are being integrated. The retained GPUFree Git entry remains on its
+existing standalone transport until the managed takeover checks pass; follow
+[the integration status](tasks.md#relay-integration-and-retained-service-takeover-2026-10-29)
+and [the adoption procedure](docs/public-access.md#relay-profile-and-ssh-integration-pending).
+
 An accepted mapping or tunnel is shown as **awaiting external verification**.
 Optional `ACCESS_PROBE_URL` integrates a remote Prometheus blackbox exporter for
 TCP verification, and `ACCESS_ALERT_WEBHOOK` reports sustained failures/recovery.

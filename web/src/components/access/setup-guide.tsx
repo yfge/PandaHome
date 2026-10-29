@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RelaySettings } from "@/components/access/relay-settings";
 
 export function AccessSetupGuide() {
   const t = useTranslations("access.setup");
@@ -19,6 +20,7 @@ export function AccessSetupGuide() {
         <h1 className="text-3xl font-bold">{t("title")}</h1>
         <p className="text-muted-foreground">{t("description")}</p>
       </div>
+      <RelaySettings />
       <Card>
         <CardHeader>
           <CardTitle>{t("directTitle")}</CardTitle>
@@ -39,18 +41,6 @@ export function AccessSetupGuide() {
             <li>{t("relayConfigure")}</li>
             <li>{t("relayRestart")}</li>
           </ol>
-          <details className="rounded-lg border p-4">
-            <summary className="cursor-pointer font-medium">{t("adminSettings")}</summary>
-            <dl className="mt-4 space-y-3">
-              {["RELAY_SERVER_ADDR", "RELAY_SERVER_PORT", "RELAY_PUBLIC_HOST", "RELAY_TOKEN", "RELAY_BINARY"].map((key) => (
-                <div key={key}>
-                  <dt className="break-all font-mono text-xs">{key}</dt>
-                  <dd className="mt-1 text-muted-foreground">{t(key)}</dd>
-                </div>
-              ))}
-            </dl>
-            <p className="mt-4 text-muted-foreground">{t("privateConfig")}</p>
-          </details>
         </CardContent>
       </Card>
       <Card>

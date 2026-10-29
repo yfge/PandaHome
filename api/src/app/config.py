@@ -45,6 +45,16 @@ class Settings(BaseSettings):
     RELAY_PUBLIC_HOST: str = ""
     RELAY_TOKEN: SecretStr = SecretStr("")
     RELAY_STATE_DIR: Path = Field(default_factory=lambda: Path.home() / ".local/state/pandahome")
+    RELAY_TLS_TRUSTED_CA_FILE: str = ""
+    RELAY_TLS_SERVER_NAME: str = ""
+    RELAY_SSH_ENABLED: bool = False
+    RELAY_SSH_HOST: str = ""
+    RELAY_SSH_PORT: int = Field(default=22, ge=1, le=65535)
+    RELAY_SSH_USER: str = ""
+    RELAY_SSH_IDENTITY_FILE: str = ""
+    RELAY_SSH_KNOWN_HOSTS_FILE: str = "~/.ssh/known_hosts"
+    RELAY_SSH_LOCAL_PORT: int = Field(default=0, ge=0, le=65535)
+    RELAY_SSH_BINARY: str = "ssh"
 
     # P2P has a separate client and credentials from publicly published services.
     P2P_SERVER_ADDR: str = ""

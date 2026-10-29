@@ -5,12 +5,13 @@ import json
 import os
 import shutil
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Sequence
 
 from .process_guard import guarded_command
 from .relay_status import FrpStatusClient
+from .relay_ssh import RelaySSHConfig, SSHControlTunnel
 
 
 class RelayError(RuntimeError):
@@ -25,6 +26,15 @@ class RelayConfig:
     server_port: int = 7000
     public_host: str = ""
     token: str = field(default="", repr=False)
+    tls_trusted_ca_file: str = ""
+    tls_server_name: str = ""
+    ssh: RelaySSHConfig | None = None
+
+    def __post_init__(self):
+        if self.tls_trusted_ca_file.strip():
+            object.__setattr__(self, "tls_trusted_ca_file", str(
+                Path(self.tls_trusted_ca_file.strip()).expanduser().resolve()
+            ))
 
 
 @dataclass(frozen=True)
@@ -80,6 +90,10 @@ def _render(config: RelayConfig, mappings: Sequence[RelayMapping]) -> str:
         'log.level = "warn"',
         "log.disablePrintColor = true",
     ]
+    if config.tls_trusted_ca_file:
+        lines.append(f"transport.tls.trustedCaFile = {_toml_string(config.tls_trusted_ca_file)}")
+    if config.tls_server_name.strip():
+        lines.append(f"transport.tls.serverName = {_toml_string(config.tls_server_name.strip())}")
     for mapping in sorted(mappings, key=lambda item: (item.service_id, item.protocol)):
         lines.extend(
             [
@@ -115,6 +129,7 @@ class FrpRelay:
         self._status_client = FrpStatusClient()
         self._registration_names: dict[str, int] = {}
         self._registration_current = False
+        self._ssh = SSHControlTunnel(config.ssh, config.server_addr, config.server_port) if config.ssh else None
         for parent in Path(__file__).resolve().parents:
             if (parent / ".git").exists() and self._directory.is_relative_to(parent):
                 raise RelayError("Relay state directory must be outside the source checkout")
@@ -138,13 +153,28 @@ class FrpRelay:
             reason = "relay_process_exited"
         else:
             reason = self._reason_code or "relay_stopped"
-        return {
+        state = {
             "configured": configured,
             "available": available,
             "running": running,
             "public_host": (self.config.public_host.strip() or self.config.server_addr.strip()) or None,
             "reason_code": reason,
         }
+        if self._ssh is not None:
+            ssh = self._ssh.status()
+            state["ssh"] = ssh
+            state["available"] = available and ssh["available"]
+            state["running"] = running and ssh["running"]
+            if configured and not ssh["available"]:
+                state["reason_code"] = "relay_ssh_binary_missing"
+            elif configured and not ssh["running"] and (running or ssh["reason_code"] != "relay_stopped"):
+                state["reason_code"] = ssh["reason_code"]
+        if self.config.tls_trusted_ca_file or self.config.tls_server_name:
+            state["tls"] = {
+                "trusted_ca_configured": bool(self.config.tls_trusted_ca_file),
+                "server_name_configured": bool(self.config.tls_server_name),
+            }
+        return state
 
     async def apply(self, mappings: Sequence[RelayMapping]) -> None:
         """Reconcile desired mappings, restarting only for changes or an exit."""
@@ -154,16 +184,33 @@ class FrpRelay:
             if not mappings or not self.config.server_addr.strip() or not binary:
                 await self._stop_locked()
                 return
+            carrier_restarted = False
+            if self._ssh is not None:
+                # Validate desired intent before acquiring a control carrier.
+                _render(self.config, mappings)
+                try:
+                    carrier_restarted = await self._ssh.start()
+                except BaseException:
+                    await self._terminate()
+                    self._remove_config()
+                    self._rendered = None
+                    raise
             rendered = self._render_config(mappings)
-            if self._process is not None and self._process.returncode is None and rendered == self._rendered:
+            if (
+                self._process is not None and self._process.returncode is None
+                and rendered == self._rendered and not carrier_restarted
+            ):
                 self._registration_current = True
                 return
-            await self._stop_locked()
-            self._write_config(rendered)
+            # Keep the ready SSH carrier while replacing only native frpc.
+            await self._terminate()
             try:
+                self._write_config(rendered)
                 await self._start(binary)
             except BaseException:
                 self._remove_config()
+                if self._ssh is not None:
+                    await self._ssh.stop()
                 raise
             self._rendered = rendered
             self._reason_code = None
@@ -171,7 +218,8 @@ class FrpRelay:
 
     def _render_config(self, mappings: Sequence[RelayMapping]) -> str:
         """Allow another private transport adapter to share process ownership."""
-        rendered = _render(self.config, mappings)
+        config = replace(self.config, server_addr="127.0.0.1", server_port=self._ssh.local_port) if self._ssh else self.config
+        rendered = _render(config, mappings)
         self._registration_names = {
             f"pandahome-{mapping.service_id}-{mapping.protocol.lower()}": mapping.service_id for mapping in mappings
         }
@@ -180,10 +228,10 @@ class FrpRelay:
     async def registration(self) -> dict[int, bool]:
         """Return native acceptance for owned proxies, separate from reachability."""
         async with self._lock:
-            if not self._registration_current or self._process is None or self._process.returncode is not None:
+            if not self._registration_current or not self.status()["running"]:
                 return {}
             result = await self._status_client.registration(self._registration_names)
-            return result if self._process.returncode is None else dict.fromkeys(result, False)
+            return result if self.status()["running"] else dict.fromkeys(result, False)
 
     def _process_command(self, binary: str) -> tuple[str, ...]:
         """Own every native transport across backend death, without shell parsing."""
@@ -223,6 +271,8 @@ class FrpRelay:
         try:
             await self._terminate()
         finally:
+            if self._ssh is not None:
+                await self._ssh.stop()
             self._registration_current = False
             self._remove_config()
             self._rendered = None

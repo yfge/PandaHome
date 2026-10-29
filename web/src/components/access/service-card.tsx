@@ -17,12 +17,13 @@ export function serviceDisplayStatus(service: PublishedService): string {
   return service.status;
 }
 
-export function ServiceCard({ service, busy, onEdit, onDelete, onCheck }: {
+export function ServiceCard({ service, busy, onEdit, onDelete, onCheck, onToggle }: {
   service: PublishedService;
   busy: boolean;
   onEdit: (event: MouseEvent<HTMLButtonElement>) => void;
   onDelete: (event: MouseEvent<HTMLButtonElement>) => void;
   onCheck: () => void;
+  onToggle?: () => void;
 }) {
   const t = useTranslations("access");
   const format = useFormatter();
@@ -68,6 +69,10 @@ export function ServiceCard({ service, busy, onEdit, onDelete, onCheck }: {
         {service.domain ? <p className="break-all text-xs text-muted-foreground">{t("dnsStatus", { name: `${service.rr === "@" ? "" : `${service.rr}.`}${service.domain}`, status: t.has(`dns.${service.dns_status}`) ? t(`dns.${service.dns_status}`) : t("dns.pending") })}</p> : null}
         {service.last_checked ? <p className="text-xs text-muted-foreground">{t("checkedAt", { time: format.dateTime(new Date(service.last_checked), { dateStyle: "short", timeStyle: "short" }) })}</p> : null}
         <div className="flex flex-wrap gap-2 border-t pt-4">
+          {onToggle ? <Button variant="outline" size="sm" disabled={busy} onClick={onToggle}
+            aria-label={t(service.enabled ? "pauseNamed" : "enableNamed", { name: service.name })}>
+            {t(service.enabled ? "pauseService" : "enableService")}
+          </Button> : null}
           <Button variant="outline" size="sm" disabled={busy || !service.enabled} onClick={onCheck}>
             <RefreshCw aria-hidden="true" />{t("check")}</Button>
           <Button variant="ghost" size="sm" disabled={busy} onClick={onEdit}>
