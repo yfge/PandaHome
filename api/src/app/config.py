@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -37,6 +37,8 @@ class Settings(BaseSettings):
 
     ACCESS_CHECK_INTERVAL_SECONDS: int = Field(default=60, ge=15, le=3600)
     ACCESS_PROBE_URL: str = ""
+    ACCESS_PROBE_PROVIDER: Literal["https", "ssh"] = "https"
+    ACCESS_PROBE_SSH_CONFIG_FILE: str = ""
     ACCESS_ALERT_WEBHOOK: str = ""
     ACCESS_ALERT_FAILURE_THRESHOLD: int = Field(default=3, ge=1, le=100)
     RELAY_BINARY: str = "frpc"

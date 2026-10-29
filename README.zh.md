@@ -23,7 +23,9 @@ TLS 信任信息及可选的 SSH 控制通道。管理员配置保存在部署�
 接管与回退要求见[公网访问指南](docs/public-access.md#relay-profile-and-ssh-integration)。
 
 映射或中转注册成功会显示 **待外网验证**。可通过 `ACCESS_PROBE_URL` 接入位于
-外部网络的 Prometheus blackbox exporter，完成 TCP 公网探测；可选
+外部网络的 HTTPS Prometheus blackbox exporter，完成 TCP 公网探测；也可显式设置
+`ACCESS_PROBE_PROVIDER=ssh` 和私有 `ACCESS_PROBE_SSH_CONFIG_FILE`，通过已信任的
+外部 SSH 主机执行有界 TCP 连接，无需在远端安装服务。两种方式均只证明 TCP 可达；可选
 `ACCESS_ALERT_WEBHOOK` 在持续失败或已验证恢复时通知。UDP 需要从外网按业务协议验证。
 详细步骤、变量与故障处理见[公网访问指南](docs/public-access.md)。
 

@@ -7,6 +7,8 @@ from urllib.parse import urlsplit
 
 import aiohttp
 
+from ..ssh_probe import load_ssh_probe
+
 
 async def local_tcp(host: str, port: int) -> bool:
     try:
@@ -34,18 +36,26 @@ def validate_remote_url(url: str) -> None:
 
 
 class HealthChecks:
-    def __init__(self, *, probe_url: str = "", webhook_url: str = ""):
+    def __init__(self, *, probe_url: str = "", webhook_url: str = "", probe_provider: str = "https",
+                 probe_ssh_config_file: str = ""):
         for url in (probe_url, webhook_url):
             if url:
                 validate_remote_url(url)
         self.probe_url = probe_url
         self.webhook_url = webhook_url
+        if probe_provider not in {"https", "ssh"}:
+            raise ValueError("Unknown external probe provider")
+        self._ssh_probe = load_ssh_probe(probe_ssh_config_file) if probe_provider == "ssh" else None
 
     async def local(self, row) -> bool | None:
         return await local_tcp(row.local_ip, row.local_port) if row.protocol == "TCP" else None
 
     async def external(self, host: str, port: int, protocol: str) -> bool | None:
-        if not self.probe_url or protocol != "TCP":
+        if protocol != "TCP":
+            return None
+        if self._ssh_probe is not None:
+            return await self._ssh_probe.external(host, port)
+        if not self.probe_url:
             return None
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:

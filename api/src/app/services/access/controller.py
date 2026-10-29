@@ -44,7 +44,9 @@ class AccessController:
             relay=self.relay,
             dns=dns or DnsSync(),
             health=health
-            or HealthChecks(probe_url=settings.ACCESS_PROBE_URL, webhook_url=settings.ACCESS_ALERT_WEBHOOK),
+            or HealthChecks(probe_url=settings.ACCESS_PROBE_URL, webhook_url=settings.ACCESS_ALERT_WEBHOOK,
+                            probe_provider=settings.ACCESS_PROBE_PROVIDER,
+                            probe_ssh_config_file=settings.ACCESS_PROBE_SSH_CONFIG_FILE),
             alert_threshold=alert_threshold,
         )
         self.interval = interval

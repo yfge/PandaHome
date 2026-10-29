@@ -26,8 +26,11 @@ and frpc lifecycle. Its existing DNS record and cloud frps remain intact; follow
 and [the adoption procedure](docs/public-access.md#relay-profile-and-ssh-integration).
 
 An accepted mapping or tunnel is shown as **awaiting external verification**.
-Optional `ACCESS_PROBE_URL` integrates a remote Prometheus blackbox exporter for
-TCP verification, and `ACCESS_ALERT_WEBHOOK` reports sustained failures/recovery.
+Optional `ACCESS_PROBE_URL` integrates a remote HTTPS Prometheus blackbox exporter.
+Alternatively, explicitly select `ACCESS_PROBE_PROVIDER=ssh` and a private
+`ACCESS_PROBE_SSH_CONFIG_FILE` to run a bounded TCP connect on a trusted external
+SSH host, without installing a remote service. Both verify TCP reachability;
+`ACCESS_ALERT_WEBHOOK` reports sustained failures/recovery.
 UDP needs application-level external validation. See the complete
 [setup and operations guide](docs/public-access.md).
 

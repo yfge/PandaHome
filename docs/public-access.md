@@ -200,7 +200,9 @@ it does not override the database, state directory or unrelated P2P settings.
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | `ACCESS_CHECK_INTERVAL_SECONDS` | `60` | Maintenance cadence, 15–3600 s; shortened for active leases |
+| `ACCESS_PROBE_PROVIDER` | `https` | External observer: existing HTTPS exporter or explicitly configured `ssh` |
 | `ACCESS_PROBE_URL` | empty | Remote HTTPS blackbox exporter `/probe` endpoint with `tcp_connect` module |
+| `ACCESS_PROBE_SSH_CONFIG_FILE` | empty | Owner-only ordinary JSON configuration outside the checkout; required for SSH provider |
 | `ACCESS_ALERT_WEBHOOK` | empty | HTTPS JSON webhook for sustained failure and verified recovery |
 | `ACCESS_ALERT_FAILURE_THRESHOLD` | `3` | Consecutive failed checks before a failure notification |
 | `RELAY_SERVER_ADDR` | empty | Reachable frps control host; empty means relay is not configured |
@@ -247,6 +249,57 @@ terminate HTTPS or issue certificates for applications.
   records are retained intentionally, including operator-existing records.
   Stopping PandaHome stops its tunnel process; direct mappings follow router
   lease semantics. Disable before shutdown if the entry must close immediately.
+
+## External TCP observer over SSH
+
+The default `https` provider retains the existing remote HTTPS exporter contract.
+Use `ACCESS_PROBE_PROVIDER=ssh` only with a trusted host in a separate network
+that can normally resolve and reach the published FQDN. Set
+`ACCESS_PROBE_SSH_CONFIG_FILE` to an owner-only (0600 or stricter), non-symlink
+ordinary JSON file outside the checkout; keep its parent directory private.
+Restart the API after changing these environment settings. No UI configuration,
+extra dependency, remote listener, installation or network-rule change is needed.
+
+Example configuration (replace paths and the independently verified hostname hash):
+
+```json
+{
+  "host": "observer.example.net",
+  "user": "observer",
+  "port": 22,
+  "binary": "/usr/bin/ssh",
+  "identity_file": "/private/observer-key",
+  "known_hosts_file": "/private/probe-known_hosts",
+  "allowed_targets": ["service.example.net:8081"],
+  "expected_hostname_sha256": "<sha256-of-verified-remote-platform.node()>"
+}
+```
+
+Reference an existing authorized identity and an independently verified SSH host
+key. Use a probe-specific known-hosts copy so probe maintenance cannot affect
+relay-control SSH. Credentials and private-key contents are never returned or
+copied by the probe. Missing or malformed private configuration fails startup;
+missing runtime trust, SSH failure, timeout or invalid evidence fails the check
+without a local or HTTPS fallback. The target must exactly match the allowlist.
+
+Each natural maintenance cycle sends a new nonce and target as JSON stdin to a
+fixed `/usr/bin/python3` program. Strict SSH trust and the expected remote hostname
+hash identify the observer. The program uses normal DNS, rejects non-global
+answers, connects to an actual resolved peer, and returns fresh UTC evidence.
+PandaHome requires matching nonce/target/hostname, actual successful SSH exit and
+validated global DNS/peer before marking TCP reachability verified. Logs contain
+safe structured evidence and a nonce hash, not credentials or raw SSH payloads.
+Remote execution has a six-second alarm; local execution has a ten-second
+operation deadline plus bounded process cleanup. Temporary SSH/guard children
+are reaped each cycle; the remote host receives no files or persistent service.
+
+Automatic verification proves a TCP connection from that observer, not HTTP
+semantics, authorization, UDP, company-router ingress or direct P2P traversal.
+Verify at least two new natural cycles, then exercise a controlled probe failure
+and restoration. If only the observer's trust is temporarily unavailable while
+the published service remains healthy, `probe_failed` and removal of verified
+status demonstrate conservative handling of probe infrastructure failure, not
+proof of a business outage. Keep trust-restoration protection and exact bytes.
 
 ## API and validation
 

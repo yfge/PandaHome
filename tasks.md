@@ -1,5 +1,22 @@
 # PandaHome Task Backlog
 
+## Automatic external TCP probe: 2026-10-29
+
+Owners: backend (explicit SSH observer and guarded process lifecycle), UE/UI
+(independent code/browser review), integration (deployment, exclusive commits and
+evidence). PM coordinates and reviews. Existing DNS, cloud frps, management UI and
+service intent are retained; only necessary backend source/configuration change.
+Current state: implementation and independent lifecycle review passed; official
+full gates passed (457 official-native API/0 skips, 121 web); real
+automatic-cycle deployment acceptance is pending.
+
+- [x] Add explicit SSH provider with exact target allowlist, strict host-key and remote-host identity, nonce/fresh UTC/global DNS/actual peer validation and bounded cleanup; preserve HTTPS defaults.
+- [x] Independently review guard cleanup and cold-start cancellation fixture; preserve the original failed test and its test-only correction.
+- [x] Pass final official-native backend/full hooks: 457 API/0 skips, 121 web, Ruff/ESLint and all hooks passed; commit the reviewed source with normal hooks.
+- [ ] Deploy API-only from the exact feature commit with owned rollback; preserve web/DB/profile/DNS/cloud frps and existing authorization keys.
+- [ ] Prove two fresh natural healthy cycles, controlled probe-trust failure removing verification while business/native stay healthy, then automatic restoration and real UI readback. No manual check/detect; TCP scope only.
+- [ ] Close temporary watchdog/browser resources, retain private probe configuration/trust, and independently audit final sources, stable resources and clean delivery.
+
 ## Relay integration and retained-service takeover: 2026-10-29
 
 Owners: backend (relay profile, TLS trust and guarded SSH/frpc lifecycle),

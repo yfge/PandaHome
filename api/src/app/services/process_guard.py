@@ -70,6 +70,19 @@ def _stop_native(child: subprocess.Popen) -> int:
     return child.returncode or 0
 
 
+def _group_has_live_members(group_id: int) -> bool:
+    """Fail closed if the reserved group still contains work or cannot be read."""
+    for pid in psutil.pids():
+        try:
+            if os.getpgid(pid) == group_id and psutil.Process(pid).status() != psutil.STATUS_ZOMBIE:
+                return True
+        except (ProcessLookupError, psutil.NoSuchProcess):
+            continue
+        except (OSError, psutil.Error):
+            return True
+    return False
+
+
 def _watchdog(args, command: tuple[str, ...], parent: psutil.Process) -> int:
     """Own native creation so outer-guard death cannot leave a launch gap."""
     stop = _Stop()
@@ -103,8 +116,17 @@ def _stop_watchdog(watcher: subprocess.Popen) -> int:
     while _alive(identity, created_at) and time.monotonic() < deadline:
         time.sleep(_POLL_SECONDS)
     if os.name == "posix":
-        with suppress(ProcessLookupError):
+        try:
             os.killpg(watcher.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        except PermissionError:
+            # Darwin may report EPERM for an unreaped zombie-only group. A dead
+            # leader alone is insufficient: its native child could be orphaned.
+            # Keep the PID reserved and tolerate only an inspectably quiescent
+            # group, never an unreadable group or a surviving native process.
+            if _alive(identity, created_at) or _group_has_live_members(watcher.pid):
+                raise
     elif _alive(identity, created_at):
         watcher.kill()
     return watcher.wait(timeout=_TERM_SECONDS)
