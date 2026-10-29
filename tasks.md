@@ -6,35 +6,44 @@ Owners: backend (relay profile, TLS trust and guarded SSH/frpc lifecycle),
 UE/UI (administrator setup and production-browser acceptance), integration
 (deployment, evidence, documentation and exclusive staging/commits).
 PM coordinates and independently reviews; PM does not implement or commit.
-Current state: implementation and managed takeover pending. The retained
-`gpufree-code.lets-gpt.com:8081` entry currently uses standalone SSH/frpc;
-its existing DNS record and cloud frps infrastructure must remain intact.
+Current state: feature `950d441` and managed takeover acceptance passed. The retained
+`gpufree-code.lets-gpt.com:8081` entry now uses PandaHome-owned guarded SSH/frpc;
+both old standalone jobs are stopped and disabled. Real UI EN/ZH × 390/1440,
+strict home nonce proofs and final read-only resource checks passed. The original
+audit's macOS output-format false is preserved; its fixed-input local 16-check
+interpretation passed. Original DNS and cloud frps are retained. Evidence:
+`agent_chats/20261029-043527-managed-relay-integration.md`.
 This work does not close native P2P direct traversal, company-router ingress,
 or the historical unexplained UDP 32783 mapping discrepancy.
 
-- [ ] Persist administrator-managed relay settings with redacted token responses, environment defaults, TLS CA/server-name verification and optional SSH transport.
-- [ ] Verify correct native TLS registration and rejection of wrong CA/server name without fallback; disabled services must start neither SSH nor frpc.
-- [ ] Pass relevant backend/frontend tests, lint, type checking, production build and normal hooks; independently review and atomically commit the feature before deployment.
-- [ ] Prepare a frozen source deployment with a fresh private database/state, one API worker and loopback-only API/web; preserve unknown existing databases.
-- [ ] Through the real UI, save the relay profile and disabled service; prove API/database persistence without claiming live ownership.
-- [ ] After reviewed cutover, disable and stop both precisely owned standalone launchd jobs; prove PandaHome owns the SSH and frpc children while cloud frps identity stays unchanged.
-- [ ] From home 1.81, verify normal DNS/FQDN homepage, version, login and anonymous-user authorization; verify disable-negative then enable-positive behavior.
-- [ ] Restart the API against the same database/profile; verify old-child cleanup, new-child ownership, restored business access and unchanged exact DNS identity/stable fields with zero DNS writes.
-- [ ] Retain a reviewed rollback that stops product-owned children before restoring old SSH/frpc, with no dual KeepAlive owner; record final evidence and retained resources.
+- [x] Persist administrator-managed relay settings with redacted token responses, environment defaults, TLS CA/server-name verification and optional SSH transport.
+- [x] Verify correct native TLS registration and rejection of wrong CA/server name without fallback; disabled services must start neither SSH nor frpc.
+- [x] Pass relevant backend/frontend tests, lint, type checking, production build and normal hooks; independently review and atomically commit the feature before deployment. Official native all-files gates: 428 API/0 skips, 121 web; lint/type/default Turbopack build passed.
+- [x] Prepare a frozen source deployment with a fresh private database/state, one API worker and loopback-only API/web; preserve unknown existing databases.
+- [x] Through the real UI, save the relay profile and disabled service; prove API/database persistence without claiming live ownership.
+- [x] After reviewed cutover, disable and stop both precisely owned standalone launchd jobs; prove PandaHome owns the SSH and frpc children while cloud frps identity stays unchanged.
+- [x] From home 1.81, verify normal DNS/FQDN homepage, version, login and anonymous-user authorization; verify disable-negative then enable-positive behavior.
+- [x] Restart the API against the same database/profile; verify old-child cleanup, new-child ownership, restored business access and unchanged exact DNS identity/stable fields with zero DNS writes. One actual SIGKILL/recovery and subsequent home nonce proof passed; provider full record/ID/timestamps, original same-value path and zero mutation logs jointly support DNS no-write acceptance.
+- [x] Retain a reviewed rollback that stops product-owned children before restoring old SSH/frpc, with no dual KeepAlive owner; record final evidence and retained resources. First-attempt strict observer failure/rollback is preserved. Both cutover watchdogs and the isolated browser/auth profile are closed; managed App/SSH/frpc/DNS/cloud frps remain intentionally active.
 
 ## Field Acceptance: field-20261028-183427Z
 
 Owners: Access (public application chain, resource ledger and final shared delivery),
 UPnP (physical-router ingress), P2P (direct traversal between separate networks).
 PM coordinates and independently reviews; owners implement and submit their work.
-Current state: committed-source direct application and physical TCP/UDP transport passed;
-public relay ingress and native P2P direct remain unpassed. All current run-owned
-resources are removed and independently verified; original-39 baseline drift
-remains unresolved.
+Current state: this original run passed committed-source direct application and
+physical TCP/UDP transport; its cloud-loopback relay diagnostics did not pass
+public ingress. The separate 2026-10-29 retained-service takeover on `950d441`
+subsequently satisfied the public relay business requirement with independent
+home FQDN/nonce, UI stop/start and API crash-recovery proofs; see the section above.
+The original run's resources were removed. The later managed deployment and
+retained DNS/cloud frps are intentional long-lived resources. Native P2P direct
+and original-39 baseline drift remain unresolved; company physical-WAN ingress
+is not proved by the later cloud relay.
 Record: `docs/field-acceptance-20261028.md`.
 
 - [x] Direct route: real API + original DnsSync + unique DNS + independent ECS nonce, actual application source/time, same-row port change, revoke and exact cleanup on fe17a0f (4/4 external proofs).
-- [ ] Public relay route: obtain a permitted application data port and an independent off-frps external client; real API/native public-control registration, cloud-loopback nonce and revoke passed separately and do not close public ingress.
+- [x] Public relay business requirement subsequently passed on `950d441` in the separate 2026-10-29 retained-service takeover: real API/UI/native frpc+guarded SSH, home normal FQDN/nonce, stop/start and API crash recovery. The original run's public-control/cloud-loopback diagnostics remain historical non-passes and are not reclassified.
 - [x] Physical TCP/UDP transport: real committed API, native 42-character ownership and TCP nonce/change/revoke; final TCP/UDP each 3/3 and own cleanup. Access window original 39 stable fields match; late UDP/final windows start/end at 38.
 - [ ] Investigate the later initial-baseline discrepancy: original UDP 32783 is missing before the UDP window, cause unproven; strict original-39 audit fails. Do not restore/adopt/delete an unknown rule.
 - [ ] Prove direct P2P traversal between genuinely separate networks, distinguish fallback relay, and independently verify resource cleanup.

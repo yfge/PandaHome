@@ -12,13 +12,15 @@
 续期映射、同步变化的 IP、重试失败检查，并恢复异常退出的中转客户端。
 
 启动前按下方“快速开始”准备数据库。使用中转时，安装官方 `frpc`，
-并按 `api/.env.example` 的 `RELAY_*` 配置填写已准备好的公网 `frps`。
+在 **公网服务 → 连接设置与帮助**（`/access/setup`）保存已准备好的公网 `frps`、
+TLS 信任信息及可选的 SSH 控制通道。管理员配置保存在部署私有文件中，
+`RELAY_*` 环境变量继续作为默认值。
 每套数据库和状态目录只运行一个 API worker；系统不会代为购买或部署公网服务器。
 
-本轮正在整合管理员中转配置和由 PandaHome 管理的可选 SSH 控制通道。
-现有 GPUFree Git 入口在接管验收通过前继续使用原独立通道；进度见
+现有 GPUFree Git 入口已由 PandaHome 接管，SSH 与 frpc 均随应用管理，
+原 DNS 记录及云端 frps 保持不变；进度见
 [集成任务](tasks.md#relay-integration-and-retained-service-takeover-2026-10-29)，
-接管与回退要求见[公网访问指南](docs/public-access.md#relay-profile-and-ssh-integration-pending)。
+接管与回退要求见[公网访问指南](docs/public-access.md#relay-profile-and-ssh-integration)。
 
 映射或中转注册成功会显示 **待外网验证**。可通过 `ACCESS_PROBE_URL` 接入位于
 外部网络的 Prometheus blackbox exporter，完成 TCP 公网探测；可选

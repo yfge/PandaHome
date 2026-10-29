@@ -72,20 +72,24 @@ external-evidence boundaries, and a usable localized mobile/desktop flow.
    Allow the control port and selected forwarded TCP/UDP ports through that
    server's firewall. Run `frps -c /private/path/frps.toml` using your service
    manager. This deployment is a separate operator action.
-5. On the home backend set `RELAY_SERVER_ADDR`, `RELAY_SERVER_PORT`, `RELAY_TOKEN`
-   and optionally `RELAY_PUBLIC_HOST` / `RELAY_BINARY`, then restart the API.
+5. As an administrator, open **Public access → Connection settings and help** and save the relay
+   address, control port, token, public host and installed `frpc` path. Set the
+   trusted CA and server name when verifying a private relay certificate.
+   Existing `RELAY_*` environment settings remain defaults until a profile is
+   saved; they are no longer the only configuration path.
    PandaHome supervises its own frpc process with TLS and native reconnects.
    It writes credentials outside the source checkout, in a private 0700 directory
    with a 0600 file, and keeps its authenticated status interface on loopback.
 
-## Relay profile and SSH integration (pending)
+## Relay profile and SSH integration
 
-The integration tracked in [tasks.md](../tasks.md) moves relay configuration and
-an optional SSH control channel into PandaHome. Implementation, production UI
-validation and the retained-service takeover are pending; the currently working
-GPUFree Git entry is still owned by standalone SSH/frpc service-manager jobs.
+Relay configuration and an optional SSH control channel are managed by PandaHome.
+The retained GPUFree Git entry has been adopted by the normal application;
+the original standalone SSH and frpc jobs are both stopped and disabled, with
+their exact configuration retained for rollback. Cloud frps remains existing
+infrastructure. See [the acceptance checklist](../tasks.md).
 
-The agreed interface is an active-administrator relay configuration screen backed
+The interface is an active-administrator relay configuration screen backed
 by `GET`/`PUT /api/access/relay-config`. The profile belongs to the deployment,
 while each published service keeps its own target, public port and DNS intent.
 The private `relay-profile.json` lives under `RELAY_STATE_DIR`, outside the source
@@ -140,6 +144,52 @@ jobs. Never keep both owners enabled. Preserve DNS, cloud frps, the new database
 and evidence; a successful rollback is not a successful PandaHome takeover.
 The retained cloud entry proves relay ingress, not company physical-WAN ingress
 or native peer-to-peer traversal.
+
+### Retained GPUFree Git acceptance: 2026-10-29
+
+Feature commit `950d4412c0d24fd01aa33f9660d2a0f22b69ca30` was deployed from a
+frozen source copy with a fresh private database/state, one API worker and
+loopback-only management listeners. Through the real UI, the administrator saved
+the profile and disabled service before either native transport was started.
+The same database/profile survived normal API restoration and one controlled
+API `SIGKILL`: old guarded SSH/frpc identities disappeared, new children belonged
+to the restored application and home-client access recovered.
+
+Home 1.81 used normal system DNS and the real FQDN
+`gpufree-code.lets-gpt.com:8081`. Homepage, version, login page and anonymous-user
+authorization returned the expected 200/200/200/401 results. A random anonymous
+request marker was correlated with the unchanged cloud frps process's incoming
+TCP connection; no packet payload or cookie was retained. UI pause removed the
+owned public listener and made home access fail; UI re-enable restored it.
+
+An initial strict probe compared an unrelated HTTPS IP-observation route with
+the business connection. The home client's VPN split routing made these differ,
+so that probe remained failed and the reviewed rollback restored the original
+entry. The later nonce-correlated checks supply the accepted evidence; the
+initial failure and rollback evidence were preserved.
+
+Without `ACCESS_PROBE_URL`, the application still reports `pending`,
+`relay_unverified` and `external_verified=false`. This is distinct from the
+separately recorded manual external acceptance. The cloud address is a relay,
+not a claim about the company router's physical WAN address.
+
+In this environment, a reconciliation can take about 13 seconds. Saving intent
+and requesting a manual check can queue behind an active reconciliation; a
+25-second client deadline did not cover two successive detection cycles. Wait
+for ordinary state/transport convergence instead of stacking immediate manual
+checks. The first rollback's approved exact-process fallback was verified.
+
+The final provider read matched the complete original DNS record, including its
+ID and creation/update timestamps. Together with the reviewed same-value return
+path and zero application Add/Update/Delete log entries, this supports the
+no-DNS-write result; log counts alone would not establish it. Cloud configuration
+hashes and frps process identity matched the original snapshot. Both old local
+jobs remained disabled, while the managed App/web/SSH/frpc and original DNS/cloud
+entry were deliberately retained. Temporary browser, authentication profile,
+packet observers and cutover watchdogs were closed.
+
+Detailed evidence and retained-resource policy are recorded in
+[`20261029-043527-managed-relay-integration.md`](../agent_chats/20261029-043527-managed-relay-integration.md).
 
 ## Settings
 

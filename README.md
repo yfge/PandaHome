@@ -13,15 +13,17 @@ Services are persisted and restored without keeping the browser open; mapping
 leases, changed IPs, failed checks and relay exits are retried automatically.
 
 Prepare the database as described in Quick Start before starting the API. For relay access,
-install the official `frpc` binary and configure your reachable `frps` using the
-`RELAY_*` entries in `api/.env.example`. Use one API worker per database/state
-directory. No public server is installed or provisioned automatically.
+install the official `frpc` binary and configure your reachable `frps` in
+**Public access → Connection settings and help** (`/access/setup`). Administrators can save TLS trust and
+an optional PandaHome-owned SSH control channel there. Settings are stored in a
+private deployment profile; `RELAY_*` environment variables remain defaults.
+Use one API worker per database/state directory. No public server is installed
+or provisioned automatically.
 
-Administrator-managed relay settings and an optional PandaHome-owned SSH control
-channel are being integrated. The retained GPUFree Git entry remains on its
-existing standalone transport until the managed takeover checks pass; follow
+The retained GPUFree Git entry is now managed by PandaHome, including its SSH
+and frpc lifecycle. Its existing DNS record and cloud frps remain intact; follow
 [the integration status](tasks.md#relay-integration-and-retained-service-takeover-2026-10-29)
-and [the adoption procedure](docs/public-access.md#relay-profile-and-ssh-integration-pending).
+and [the adoption procedure](docs/public-access.md#relay-profile-and-ssh-integration).
 
 An accepted mapping or tunnel is shown as **awaiting external verification**.
 Optional `ACCESS_PROBE_URL` integrates a remote Prometheus blackbox exporter for
