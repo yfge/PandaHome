@@ -73,7 +73,7 @@ Owner: PandaHome maintainers / Codex. Design: `docs/public-access.md`.
 - [x] DDNS update P1 — Pass the original RR to the official SDK; verify all required update fields and real unique-record create, no-write idempotence, same-ID changed value, public/authoritative readback and owned cleanup.
 - [x] Access interaction acceptance — Independently verify committed rapid Escape/Cancel/X navigation and full correction after save failures in EN/ZH desktop/mobile browsers.
 - [x] Direct field acceptance — Real external application content, DNS, API-managed publish/change/revoke and exact cleanup passed on fe17a0f; see docs/field-acceptance-20261028.md.
-- [ ] Public relay field acceptance — Real native relay runtime diagnostic passed, but SG application ingress and an off-frps external client remain required. No persistent deployment is claimed.
+- [x] Public relay field acceptance — Subsequently satisfied on `950d441` by the retained managed deployment: real home normal-FQDN/nonce application access, UI pause/re-enable and same-DB API crash recovery. The existing cloud frps/DNS are retained infrastructure; both local transports belong to PandaHome. Earlier cloud-loopback diagnostics remain historical non-passes, and this does not prove company physical-WAN ingress or native P2P direct traversal.
 
 ## Feature 01: Core Platform & Tooling Baseline
 - [x] Step 1 (Backend) — Audit actual runtime imports (UPnP, auth, Aliyun) and list missing dependencies with required versions.

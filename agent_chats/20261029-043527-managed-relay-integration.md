@@ -137,6 +137,11 @@ No account reset or additional account was performed.
 - Final documentation uses the mandatory normal commit hooks. Exact invocation,
   actual result and final HEAD/clean/index/source-diff assertions are recorded in
   the private final delivery manifest; no hooks are bypassed.
+- The five-path acceptance documentation commit `7ba7e29` passed normal hooks.
+  A late PM consistency review found the duplicate Feature 07 public-relay
+  checklist still described the old diagnostic-only state. A separate exact
+  `tasks.md` plus this-log follow-up corrects that entry; the original commit and
+  historical evidence remain intact. No product or runtime change is involved.
 
 ## Incident
 
