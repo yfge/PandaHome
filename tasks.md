@@ -6,16 +6,21 @@ Owners: backend (explicit SSH observer and guarded process lifecycle), UE/UI
 (independent code/browser review), integration (deployment, exclusive commits and
 evidence). PM coordinates and reviews. Existing DNS, cloud frps, management UI and
 service intent are retained; only necessary backend source/configuration change.
-Current state: implementation and independent lifecycle review passed; official
-full gates passed (457 official-native API/0 skips, 121 web); real
-automatic-cycle deployment acceptance is pending.
+Current state: feature `f4ff4f5` passed official-native full gates
+(457 API/0 skips, 121 web) and real automatic TCP acceptance. Two new natural
+healthy cycles, probe-only trust-failure false, exact-byte restoration/two new
+healthy cycles and independent real UI three-state readback passed. API/native
+identities stayed fixed during failure/recovery; HTTP continuity was a separate
+control. Final 15-predicate audit and independent UI release passed; both
+watchdogs/owned Chrome/observer are closed, and final fresh GET remains verified.
+Private probe configuration/trust and original product resources are retained.
 
 - [x] Add explicit SSH provider with exact target allowlist, strict host-key and remote-host identity, nonce/fresh UTC/global DNS/actual peer validation and bounded cleanup; preserve HTTPS defaults.
 - [x] Independently review guard cleanup and cold-start cancellation fixture; preserve the original failed test and its test-only correction.
 - [x] Pass final official-native backend/full hooks: 457 API/0 skips, 121 web, Ruff/ESLint and all hooks passed; commit the reviewed source with normal hooks.
-- [ ] Deploy API-only from the exact feature commit with owned rollback; preserve web/DB/profile/DNS/cloud frps and existing authorization keys.
-- [ ] Prove two fresh natural healthy cycles, controlled probe-trust failure removing verification while business/native stay healthy, then automatic restoration and real UI readback. No manual check/detect; TCP scope only.
-- [ ] Close temporary watchdog/browser resources, retain private probe configuration/trust, and independently audit final sources, stable resources and clean delivery.
+- [x] Deploy API-only from the exact feature commit with owned rollback; preserve web/DB/profile/DNS/cloud frps and existing authorization keys.
+- [x] Prove two fresh natural healthy cycles, controlled probe-trust failure removing verification while business/native stay healthy, then automatic restoration and real UI readback. No manual check/detect; TCP scope only.
+- [x] Close temporary watchdog/browser resources, retain private probe configuration/trust, and independently audit final sources, stable resources and clean delivery. Final audit: 15/15, 290 source fingerprints, unchanged original DNS/cloud/web; fresh ordinary GET at06:31:53 UTC remains healthy/verified. Final documentation uses normal hooks.
 
 ## Relay integration and retained-service takeover: 2026-10-29
 

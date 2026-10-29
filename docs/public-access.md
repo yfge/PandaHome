@@ -168,9 +168,11 @@ so that probe remained failed and the reviewed rollback restored the original
 entry. The later nonce-correlated checks supply the accepted evidence; the
 initial failure and rollback evidence were preserved.
 
-Without `ACCESS_PROBE_URL`, the application still reports `pending`,
-`relay_unverified` and `external_verified=false`. This is distinct from the
-separately recorded manual external acceptance. The cloud address is a relay,
+At the original `950d441` takeover, no automatic external provider was configured,
+so the application reported `pending`, `relay_unverified` and
+`external_verified=false` despite the separate manual external acceptance.
+The later SSH-observer acceptance below supplies automatic TCP verification;
+it does not rewrite that earlier evidence. The cloud address remains a relay,
 not a claim about the company router's physical WAN address.
 
 In this environment, a reconciliation can take about 13 seconds. Saving intent
@@ -190,6 +192,47 @@ packet observers and cutover watchdogs were closed.
 
 Detailed evidence and retained-resource policy are recorded in
 [`20261029-043527-managed-relay-integration.md`](../agent_chats/20261029-043527-managed-relay-integration.md).
+
+### Retained automatic TCP verification: 2026-10-29
+
+Feature `f4ff4f501c6cff3a72bab2fed767901fd1d88316` adds the explicitly selected
+SSH observer. Only six necessary backend source files and two environment
+settings were deployed; the existing API was normally restarted once. The web
+process, database/profile, native relay configuration, DNS and cloud frps were
+retained. There was no migration, dependency install, bootstrap or web rebuild.
+
+The trusted home 1.81 observer resolved `gpufree-code.lets-gpt.com` normally to
+`47.94.235.35` and connected to TCP 8081. Two natural maintenance cycles finished
+healthy/ready/verified at 06:25:11 and 06:25:26 UTC, with different fresh nonces,
+pinned home identity, actual global peer and real SSH exit 0. No manual check or
+detection request was issued. The real UI independently became verified.
+
+A protected atomic rename of the probe-only known-hosts file then caused a real
+SSH exit 255. At 06:26:40 UTC the ordinary cycle became
+`degraded/probe_failed/external_verified=false`, and the UI removed its verified
+badge. The published row stayed enabled; the API and all six fixed native relay
+identities stayed unchanged. A separate home FQDN HTTP version request still
+returned 200/1.22.2. This proves conservative handling of probe infrastructure
+failure; the business endpoint was not interrupted.
+
+At 06:27:20 UTC the exact original trust bytes were restored without restarting
+the API or native transports. Natural cycles at 06:27:27 and 06:27:41 again
+validated new home nonces and restored healthy/ready/verified status and the real
+UI badge. This automatic evidence is TCP-connect only; the separate HTTP request
+is a continuity control, not an automatic HTTP-health claim.
+
+The final read-only audit passed all 15 predicates: 290 deployed source hashes,
+fixed native identities, unchanged web/cloud frps/configuration and original full
+DNS record/ID/timestamps, private 0600 files, disabled old standalone jobs,
+loopback management and no manual checks. Reviewed same-value DNS source, equal
+provider fields and zero scoped mutation logs jointly support no DNS write.
+Probe guards/SSH are short-lived per cycle and were absent in a bounded quiet
+sample. The private persistent `managed-access/probe-ssh/ssh-probe.json` and
+`known_hosts` are intentionally retained. No route, VPN, security-group,
+firewall, router, home filesystem or DNS mutation was required.
+
+Detailed raw evidence and protected rollback records are linked from
+[`20261029-055543-automatic-external-probe-integration.md`](../agent_chats/20261029-055543-automatic-external-probe-integration.md).
 
 ## Settings
 

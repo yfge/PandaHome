@@ -24,8 +24,12 @@ The retained GPUFree Git entry is now managed by PandaHome, including its SSH
 and frpc lifecycle. Its existing DNS record and cloud frps remain intact; follow
 [the integration status](tasks.md#relay-integration-and-retained-service-takeover-2026-10-29)
 and [the adoption procedure](docs/public-access.md#relay-profile-and-ssh-integration).
+Its retained TCP 8081 entry now has automatic home-network SSH verification;
+[the acceptance record](docs/public-access.md#retained-automatic-tcp-verification-2026-10-29)
+separates probe failures from business outages.
 
-An accepted mapping or tunnel is shown as **awaiting external verification**.
+Mapping or tunnel registration alone is shown as **awaiting external verification**
+until an external check succeeds.
 Optional `ACCESS_PROBE_URL` integrates a remote HTTPS Prometheus blackbox exporter.
 Alternatively, explicitly select `ACCESS_PROBE_PROVIDER=ssh` and a private
 `ACCESS_PROBE_SSH_CONFIG_FILE` to run a bounded TCP connect on a trusted external

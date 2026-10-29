@@ -21,8 +21,11 @@ TLS 信任信息及可选的 SSH 控制通道。管理员配置保存在部署�
 原 DNS 记录及云端 frps 保持不变；进度见
 [集成任务](tasks.md#relay-integration-and-retained-service-takeover-2026-10-29)，
 接管与回退要求见[公网访问指南](docs/public-access.md#relay-profile-and-ssh-integration)。
+该保留入口的 TCP 8081 现已启用家庭网络 SSH 自动验证；
+[验收记录](docs/public-access.md#retained-automatic-tcp-verification-2026-10-29)
+区分探针设施故障与业务中断。
 
-映射或中转注册成功会显示 **待外网验证**。可通过 `ACCESS_PROBE_URL` 接入位于
+只有映射或中转注册成功、外网检查尚未通过时，会显示 **待外网验证**。可通过 `ACCESS_PROBE_URL` 接入位于
 外部网络的 HTTPS Prometheus blackbox exporter，完成 TCP 公网探测；也可显式设置
 `ACCESS_PROBE_PROVIDER=ssh` 和私有 `ACCESS_PROBE_SSH_CONFIG_FILE`，通过已信任的
 外部 SSH 主机执行有界 TCP 连接，无需在远端安装服务。两种方式均只证明 TCP 可达；可选
